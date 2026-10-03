@@ -18,7 +18,7 @@ const COMPANY_LINKS: Array<[string, string, boolean?]> = [
 ];
 
 const SUPPORT_LINKS: Array<[string, string]> = [
-  ["/track", "Track order"],
+  ["/account?tab=track", "Track order"],
   ["/support", "Help & FAQ"],
   ["/legal/returns", "Warranty & returns"],
   ["/legal/shipping", "Shipping"],

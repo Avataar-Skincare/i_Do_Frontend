@@ -14,4 +14,4 @@ export const CHECKOUT_PERKS: Array<{ icon: IconName; text: string }> = [
 ];
 
 export const CHECKOUT_DEMO_NOTE =
-  "This is a demo checkout — no real payment is processed and no card details are taken. Orders are saved to this device so you can see the full flow.";
+  "Payments are processed securely via Razorpay — we never see or store your card, UPI or bank details.";

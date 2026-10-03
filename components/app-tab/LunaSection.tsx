@@ -1,7 +1,8 @@
 import { Icon } from "@/components/ui/Icon";
 import { Section } from "@/components/ui/Section";
+import { PhoneScreenshot } from "@/components/ui/PhoneScreenshot";
 import { LUNA_FEATURES } from "@/lib/content/app-tab";
-import { PhoneScores } from "./PhoneScores";
+import { APP_SCREENSHOTS } from "@/lib/content/app-screenshots";
 
 export function LunaSection() {
   return (
@@ -31,12 +32,12 @@ export function LunaSection() {
             ))}
           </div>
         </div>
-        <figure className="flex flex-col items-center m-0">
-          <PhoneScores active="" />
-          <figcaption className="text-center mt-3.5 text-[0.82rem] text-muted font-mono tracking-[0.04em]">
-            Luna&rsquo;s recommendations, from your scores
-          </figcaption>
-        </figure>
+        <PhoneScreenshot
+          src={APP_SCREENSHOTS[1]}
+          alt="Luna's recommendations, based on the app's scores screen"
+          caption="Luna's recommendations, from your scores"
+          className="mx-auto"
+        />
       </div>
     </Section>
   );

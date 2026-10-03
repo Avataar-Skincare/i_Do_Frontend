@@ -1,7 +1,8 @@
 import { Icon } from "@/components/ui/Icon";
 import { LinkButton } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
-import { PhoneHome } from "./PhoneHome";
+import { PhoneScreenshot } from "@/components/ui/PhoneScreenshot";
+import { APP_SCREENSHOTS } from "@/lib/content/app-screenshots";
 
 export function AppHero() {
   return (
@@ -9,7 +10,7 @@ export function AppHero() {
       <Container>
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-11 items-center mt-8">
           <div className="flex justify-center">
-            <PhoneHome />
+            <PhoneScreenshot src={APP_SCREENSHOTS[0]} alt="The i do app home screen showing today's Glow score" />
           </div>
           <div>
             <div className="font-mono text-xs tracking-[0.2em] uppercase text-gold-deep mb-4">

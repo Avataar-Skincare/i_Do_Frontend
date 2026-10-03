@@ -1,14 +1,18 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { LinkButton } from "@/components/ui/Button";
 import { formatINR } from "@/lib/format";
 import { SITE } from "@/lib/content/site";
 import { CHECKOUT_PERKS, CHECKOUT_DEMO_NOTE } from "@/lib/content/cart";
 import { useCart } from "@/lib/cart-context";
-import { saveOrder, type Order } from "@/lib/orders-storage";
+import { useAuth } from "@/lib/auth-context";
+import { AuthModal } from "@/components/account/AuthModal";
+import { saveOrder } from "@/lib/orders-storage";
+import { createRazorpayOrder, payWithRazorpay } from "@/lib/razorpay";
 import { ApiError } from "@/lib/api";
 
 type PaymentMethod = "online" | "cod";
@@ -31,13 +35,15 @@ function validate(fields: Fields): Errors {
 }
 
 export function CheckoutForm() {
+  const router = useRouter();
   const { cart, cartSubtotal, clearCart } = useCart();
+  const { user } = useAuth();
   const [fields, setFields] = useState<Fields>(EMPTY_FIELDS);
   const [errors, setErrors] = useState<Errors>({});
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("online");
-  const [order, setOrder] = useState<Order | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const codFee = paymentMethod === "cod" ? SITE.codFeeInPaise : 0;
   const total = cartSubtotal + codFee;
@@ -46,16 +52,23 @@ export function CheckoutForm() {
     setFields((f) => ({ ...f, [key]: value }));
   }
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const found = validate(fields);
-    setErrors(found);
-    if (Object.keys(found).length > 0) return;
+  // Prefill from the account once we know who's logged in — doesn't clobber
+  // anything the person already typed while browsing.
+  useEffect(() => {
+    if (!user) return;
+    setFields((f) => ({
+      ...f,
+      name: f.name || user.fullName || "",
+      email: f.email || user.email || "",
+      phone: f.phone || user.phone || "",
+    }));
+  }, [user]);
 
+  async function placeOrder() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const saved = await saveOrder({
+      const basePayload = {
         items: cart,
         subtotal: cartSubtotal,
         codFee,
@@ -63,34 +76,59 @@ export function CheckoutForm() {
         paymentMethod,
         customer: { name: fields.name, email: fields.email, phone: fields.phone },
         address: { line: fields.address, city: fields.city, state: fields.state, pin: fields.pin },
-      });
+      };
+
+      let saved;
+      if (paymentMethod === "online") {
+        // Order only gets created in our DB after a real, verified Razorpay payment —
+        // never before. See OrdersService.create on the backend for the signature check.
+        const razorpayOrder = await createRazorpayOrder(total);
+        const payment = await payWithRazorpay(razorpayOrder, {
+          name: fields.name,
+          email: fields.email,
+          phone: fields.phone,
+        });
+        saved = await saveOrder({ ...basePayload, ...payment });
+      } else {
+        saved = await saveOrder(basePayload);
+      }
+
       clearCart();
-      setOrder(saved);
+      router.push(`/confirm?orderId=${saved.id}`);
     } catch (err) {
       setSubmitError(
-        err instanceof ApiError ? err.message : "Couldn't place your order — check your connection and try again."
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Couldn't place your order — check your connection and try again."
       );
-    } finally {
       setSubmitting(false);
     }
   }
 
-  if (order) {
-    return (
-      <div className="max-w-[560px] mx-auto text-center py-16">
-        <div className="w-16 h-16 rounded-full bg-sage-bg text-sage grid place-items-center mx-auto mb-5">
-          <Icon name="check" size={30} />
-        </div>
-        <h2 className="font-serif text-3xl font-medium mb-2.5">Order placed</h2>
-        <p className="text-ink-2 mb-1">
-          Order <strong className="text-ink font-mono">{order.id}</strong> is confirmed.
-        </p>
-        <p className="text-muted mb-7">
-          We&rsquo;ve sent the details to {order.customer.email}. Your ring ships in 3–7 working days.
-        </p>
-        <LinkButton href="/shop">Continue shopping</LinkButton>
-      </div>
-    );
+  // Logging in inside the modal re-renders this with a `user` for the first
+  // time — if that happened while the modal was open for this exact reason,
+  // finish placing the order immediately instead of making them click twice.
+  useEffect(() => {
+    if (showAuthModal && user) {
+      setShowAuthModal(false);
+      void placeOrder();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const found = validate(fields);
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
+
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    void placeOrder();
   }
 
   if (cart.length === 0) {
@@ -104,7 +142,8 @@ export function CheckoutForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[1.35fr_0.9fr] gap-9 items-start">
+    <>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[1.35fr_0.9fr] gap-9 items-start">
       <div>
         <FormSection number={1} title="Contact">
           <Field label="Full name" required error={errors.name}>
@@ -236,7 +275,14 @@ export function CheckoutForm() {
           ))}
         </div>
       </div>
-    </form>
+      </form>
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          lead="Log in or create an account to place this order — we'll pick up right where you left off."
+        />
+      )}
+    </>
   );
 }
 

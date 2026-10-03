@@ -21,10 +21,24 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-export function apiGet<T>(path: string): Promise<T> {
-  return request<T>(path);
+export function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
+  return request<T>(path, init);
 }
 
-export function apiPost<T>(path: string, body: unknown): Promise<T> {
-  return request<T>(path, { method: "POST", body: JSON.stringify(body) });
+export function apiPost<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
+  return request<T>(path, { ...init, method: "POST", body: JSON.stringify(body) });
+}
+
+export function apiPatch<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
+  return request<T>(path, { ...init, method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function apiDelete<T>(path: string, init?: RequestInit): Promise<T> {
+  return request<T>(path, { ...init, method: "DELETE" });
+}
+
+/** Merges an Authorization header into a fetch init when a token is present, else returns init unchanged. */
+export function withAuth(token: string | null, init?: RequestInit): RequestInit | undefined {
+  if (!token) return init;
+  return { ...init, headers: { ...init?.headers, Authorization: `Bearer ${token}` } };
 }

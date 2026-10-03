@@ -17,7 +17,7 @@ export const SITE = {
   address: "Misya Beauty Tech Pvt. Ltd., [Registered address], India", // placeholder
   gstin: "[GSTIN]", // placeholder
   cin: "[CIN]", // placeholder
-  domain: "idobyavataar.com", // placeholder
+  domain: "idowellness.ai", // confirmed 2026-09-24 — registered domain
   avataarUrl: "https://avataarskin.com", // placeholder cross-link
   rating: 4.6,
   customers: "30,000+",
