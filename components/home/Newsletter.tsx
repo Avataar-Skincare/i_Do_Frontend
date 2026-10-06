@@ -2,14 +2,30 @@
 
 import { useState, type FormEvent } from "react";
 import { Section } from "@/components/ui/Section";
+import { apiPost, ApiError } from "@/lib/api";
 
-/** No email backend exists yet (see PRD: "just shows a toast today — no real send"). */
 export function Newsletter() {
+  const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSubmitted(true);
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setError("Enter a valid email");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiPost("/newsletter/subscribe", { email });
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Something went wrong — check your connection and try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -27,22 +43,28 @@ export function Newsletter() {
         {submitted ? (
           <p className="text-ink-2 font-medium">You&rsquo;re subscribed — welcome to The Circle.</p>
         ) : (
-          <form onSubmit={onSubmit} className="flex gap-2.5 flex-wrap">
-            <input
-              type="email"
-              name="email"
-              placeholder="you@email.com"
-              required
-              aria-label="Email"
-              className="flex-1 min-w-[200px] bg-bg-2 border border-line-2 rounded-pill py-3.5 px-5 text-[0.95rem] focus:outline-none focus:border-gold"
-            />
-            <button
-              type="submit"
-              className="bg-nav text-[#F3ECDD] font-semibold py-3.5 px-6 rounded-pill hover:bg-black transition-colors"
-            >
-              Subscribe
-            </button>
-          </form>
+          <div>
+            <form onSubmit={onSubmit} className="flex gap-2.5 flex-wrap">
+              <input
+                type="email"
+                name="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@email.com"
+                required
+                aria-label="Email"
+                className="flex-1 min-w-[200px] bg-bg-2 border border-line-2 rounded-pill py-3.5 px-5 text-[0.95rem] focus:outline-none focus:border-gold"
+              />
+              <button
+                type="submit"
+                disabled={submitting}
+                className="bg-nav text-[#F3ECDD] font-semibold py-3.5 px-6 rounded-pill hover:bg-black transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {submitting ? "Subscribing…" : "Subscribe"}
+              </button>
+            </form>
+            {error && <p className="text-[0.82rem] text-error mt-2 mb-0">{error}</p>}
+          </div>
         )}
       </div>
     </Section>

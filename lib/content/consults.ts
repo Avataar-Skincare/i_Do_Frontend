@@ -30,7 +30,7 @@ export const CONSULT_TYPES: Array<{
   },
 ];
 
-export const TIME_SLOTS = ["10:00 AM", "11:30 AM", "1:00 PM", "2:30 PM", "4:00 PM", "5:30 PM", "6:30 PM", "7:30 PM"];
+export const TIME_SLOTS = ["10:00 AM", "12:30 PM", "3:00 PM", "5:30 PM", "8:00 PM"];
 
 export const WHY_IT_WORKS: Array<{ icon: IconName; title: string; body: string }> = [
   { icon: "spark", title: "Read with your data", body: "Your scores and trends, interpreted by an expert — not guesswork." },
@@ -39,4 +39,4 @@ export const WHY_IT_WORKS: Array<{ icon: IconName; title: string; body: string }
 ];
 
 export const CONSULT_NOTE =
-  "Bookings here are saved to this device for the demo. In production you'd get a calendar invite and reminders.";
+  "Booking here sends your request to our consult team — they'll confirm a doctor and slot, then you'll see it here and get a calendar invite.";

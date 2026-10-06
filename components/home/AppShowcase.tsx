@@ -2,15 +2,20 @@ import { Icon } from "@/components/ui/Icon";
 import { LinkButton } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
 import { SectionHead } from "@/components/ui/SectionHead";
+import { PhoneScreenshot } from "@/components/ui/PhoneScreenshot";
 import { APP_FEATURES } from "@/lib/content/home";
-import { PhoneMock } from "./PhoneMock";
+import { APP_SCREENSHOTS } from "@/lib/content/app-screenshots";
 
 export function AppShowcase() {
   return (
     <Section bg="muted">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         <div className="flex justify-center">
-          <PhoneMock caption="Home · your Glow score & today's plan" />
+          <PhoneScreenshot
+            src={APP_SCREENSHOTS[0]}
+            alt="The i do app home screen showing today's Glow score"
+            caption="Home · your Glow score & today's plan"
+          />
         </div>
         <div>
           <SectionHead eyebrow="The app" title="A daily plan, not just a dashboard" />
@@ -37,10 +42,30 @@ export function AppShowcase() {
         </div>
       </div>
       <div className="flex gap-4.5 overflow-x-auto pt-2.5 pb-5.5 mt-11 snap-x snap-mandatory">
-        <PhoneMock caption="Eight skin scores" className="shrink-0 w-[250px] snap-center" />
-        <PhoneMock caption="Your routine, kept" className="shrink-0 w-[250px] snap-center" />
-        <PhoneMock caption="Eat for your glow" className="shrink-0 w-[250px] snap-center" />
-        <PhoneMock caption="The Circle" className="shrink-0 w-[250px] snap-center" />
+        <PhoneScreenshot
+          src={APP_SCREENSHOTS[1]}
+          alt="The i do app's eight skin scores screen"
+          caption="Eight skin scores"
+          className="shrink-0 w-[250px] snap-center"
+        />
+        <PhoneScreenshot
+          src={APP_SCREENSHOTS[2]}
+          alt="The i do app's daily routine screen"
+          caption="Your routine, kept"
+          className="shrink-0 w-[250px] snap-center"
+        />
+        <PhoneScreenshot
+          src={APP_SCREENSHOTS[3]}
+          alt="The i do app's food/plate screen"
+          caption="Eat for your glow"
+          className="shrink-0 w-[250px] snap-center"
+        />
+        <PhoneScreenshot
+          src={APP_SCREENSHOTS[4]}
+          alt="The i do app's Circle content screen"
+          caption="The Circle"
+          className="shrink-0 w-[250px] snap-center"
+        />
       </div>
     </Section>
   );
