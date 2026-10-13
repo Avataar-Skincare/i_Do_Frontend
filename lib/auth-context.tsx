@@ -12,6 +12,8 @@ export type AuthUser = {
   createdAt: string;
   /** Only meaningful when `email` is set — a phone-only account has no email to verify. */
   emailVerifiedAt: string | null;
+  /** Only meaningful when `phone` is set. */
+  phoneVerifiedAt: string | null;
 };
 
 type AuthContextValue = {
@@ -19,19 +21,17 @@ type AuthContextValue = {
   loading: boolean;
   /** Set only while a just-registered (by email) account is waiting on its OTP — see register(). */
   pendingVerificationEmail: string | null;
-  /** `identifier` can be either the account's email or its 10-digit phone number. */
-  login: (identifier: string, password: string) => Promise<void>;
-  /**
-   * `identifier` is either an email or a 10-digit phone — never both; the
-   * customer picks one. Phone signups log in immediately (no OTP provider
-   * wired up yet). Email signups don't — the account exists but holds no
-   * session until verifyEmail() succeeds.
-   */
-  register: (identifier: string, password: string, fullName?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  /** Email signups hold no session until verifyEmail() succeeds. Phone accounts don't use this — see sendPhoneOtp/verifyPhoneOtp. */
+  register: (email: string, password: string, fullName?: string) => Promise<void>;
   logout: () => void;
   deleteAccount: () => Promise<void>;
   verifyEmail: (code: string) => Promise<void>;
   resendVerificationEmail: () => Promise<void>;
+  /** Sends a 6-digit SMS code to this phone — works for both a new and an existing phone account. */
+  sendPhoneOtp: (phone: string) => Promise<void>;
+  /** Verifying logs the account in — creating it first if this phone has no account yet (fullName only used then). */
+  verifyPhoneOtp: (phone: string, code: string, fullName?: string) => Promise<void>;
   claimOrder: (token: string, opts?: { password?: string; fullName?: string }) => Promise<void>;
 };
 
@@ -77,26 +77,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(identifier: string, password: string) {
-    const res = await apiPost<{ user: AuthUser; token: string }>("/auth/login", { identifier, password });
+  async function login(email: string, password: string) {
+    const res = await apiPost<{ user: AuthUser; token: string }>("/auth/login", { email, password });
     writeToken(res.token);
     setUser(res.user);
   }
 
-  async function register(identifier: string, password: string, fullName?: string) {
-    const res = await apiPost<{ user: AuthUser; token: string }>("/auth/register", {
-      identifier,
-      password,
-      fullName,
-    });
+  async function register(email: string, password: string, fullName?: string) {
+    const res = await apiPost<{ user: AuthUser; token: string }>("/auth/register", { email, password, fullName });
+    setPendingVerification({ token: res.token, user: res.user });
+  }
 
-    // Signed up by email → unverified, no session yet. Signed up by phone → no email at all, log in right away.
-    if (res.user.email && !res.user.emailVerifiedAt) {
-      setPendingVerification({ token: res.token, user: res.user });
-    } else {
-      writeToken(res.token);
-      setUser(res.user);
-    }
+  async function sendPhoneOtp(phone: string) {
+    await apiPost("/auth/phone/send-otp", { phone });
+  }
+
+  async function verifyPhoneOtp(phone: string, code: string, fullName?: string) {
+    const res = await apiPost<{ user: AuthUser; token: string }>("/auth/phone/verify-otp", { phone, code, fullName });
+    writeToken(res.token);
+    setUser(res.user);
   }
 
   function logout() {
@@ -151,6 +150,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         deleteAccount,
         verifyEmail,
         resendVerificationEmail,
+        sendPhoneOtp,
+        verifyPhoneOtp,
         claimOrder,
       }}
     >
