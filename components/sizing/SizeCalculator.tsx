@@ -2,10 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { LinkButton } from "@/components/ui/Button";
+import { Button, LinkButton } from "@/components/ui/Button";
 import { Note } from "@/components/ui/Note";
 import { SIZES } from "@/lib/content/product";
 import { SIZING_TIP } from "@/lib/content/sizing";
+import { GALLERY } from "@/lib/content/shop";
+import { useCart } from "@/lib/cart-context";
 
 type Mode = "circumference" | "diameter";
 
@@ -17,9 +19,11 @@ function nearestSize(valueMm: number, mode: Mode) {
 }
 
 export function SizeCalculator() {
+  const { addItem } = useCart();
   const [mode, setMode] = useState<Mode>("circumference");
   const [value, setValue] = useState("");
   const [result, setResult] = useState<{ us: number; measured: number } | null>(null);
+  const [kitAdded, setKitAdded] = useState(false);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,6 +36,12 @@ export function SizeCalculator() {
   function switchMode(next: Mode) {
     setMode(next);
     setResult(null);
+  }
+
+  function handleAddSizingKit() {
+    addItem({ id: "kit", name: "Free sizing kit", finish: "", size: "", price: 0, qty: 1, image: GALLERY[0].src });
+    setKitAdded(true);
+    setTimeout(() => setKitAdded(false), 2200);
   }
 
   return (
@@ -87,10 +97,10 @@ export function SizeCalculator() {
         <Note>{SIZING_TIP}</Note>
       </div>
 
-      <div className="flex gap-3 flex-wrap mt-6">
-        <LinkButton href="/shop" variant="ghost">
-          <Icon name="box" size={16} /> Free sizing kit
-        </LinkButton>
+      <div className="flex gap-3 flex-wrap items-center mt-6">
+        <Button type="button" onClick={handleAddSizingKit} variant="ghost">
+          <Icon name="box" size={16} /> {kitAdded ? "Added to bag ✓" : "Free sizing kit"}
+        </Button>
         <LinkButton href="/shop" variant="dark">
           Shop the ring
         </LinkButton>
