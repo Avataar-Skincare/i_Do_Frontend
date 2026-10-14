@@ -21,7 +21,11 @@ export function CartLineItem({ item }: { item: CartItem }) {
           <div className="flex items-center gap-4">
             <div className="inline-flex items-center border-[1.5px] border-line-2 rounded-pill overflow-hidden">
               <button
-                onClick={() => updateQty(item.id, item.finish, item.size, item.qty - 1)}
+                onClick={() =>
+                  item.qty <= 1
+                    ? removeItem(item.id, item.finish, item.size)
+                    : updateQty(item.id, item.finish, item.size, item.qty - 1)
+                }
                 className="w-9 h-9 grid place-items-center hover:bg-bg-3"
               >
                 −

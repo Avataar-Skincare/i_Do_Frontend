@@ -2,45 +2,42 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Icon } from "@/components/ui/Icon";
-import { Note } from "@/components/ui/Note";
 import { formatINR } from "@/lib/format";
 import { SITE } from "@/lib/content/site";
 import { FINISHES, SIZES } from "@/lib/content/product";
-import { GALLERY, PRODUCT, HIGHLIGHTS, CONSULT_CALLOUT } from "@/lib/content/shop";
+import { GALLERY, PRODUCT, HIGHLIGHTS, CONSULT_CALLOUT, SIZING_KIT_IMAGE } from "@/lib/content/shop";
 import { useCart } from "@/lib/cart-context";
 import { ProductAccordion } from "./ProductAccordion";
+
+type SizeMode = "kit" | "known";
 
 export function ProductInfo() {
   const { addItem } = useCart();
   const [finishId, setFinishId] = useState(FINISHES[0].id);
+  const [sizeMode, setSizeMode] = useState<SizeMode>("kit");
   const [size, setSize] = useState<number | null>(null);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
-  const [kitAdded, setKitAdded] = useState(false);
 
   const finish = FINISHES.find((f) => f.id === finishId)!;
   const mainImage = GALLERY[0].src;
+  const canAddToBag = sizeMode === "kit" || !!size;
 
   function handleAddToBag() {
-    if (!size) return;
+    if (!canAddToBag) return;
     addItem({
       id: "ring",
       name: PRODUCT.name,
       finish: finish.name,
-      size: String(size),
+      size: sizeMode === "kit" ? "Free Sizing Kit" : String(size),
       price: SITE.priceInPaise,
       qty,
       image: mainImage,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2200);
-  }
-
-  function handleAddSizingKit() {
-    addItem({ id: "kit", name: "Free sizing kit", finish: "", size: "", price: 0, qty: 1, image: mainImage });
-    setKitAdded(true);
-    setTimeout(() => setKitAdded(false), 2200);
   }
 
   return (
@@ -92,38 +89,61 @@ export function ProductInfo() {
         </div>
       </div>
 
-      <div className="mb-5.5">
-        <div className="flex justify-between items-center font-mono text-xs tracking-[0.1em] uppercase text-muted mb-3">
-          <span>Size (US)</span>
-          <Link href="/sizing" className="font-sans text-gold-deep font-semibold normal-case tracking-normal inline-flex items-center gap-1.5">
-            <Icon name="search" size={13} /> Find my size
-          </Link>
-        </div>
-        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-          {SIZES.map((s) => (
-            <button
-              key={s.us}
-              onClick={() => setSize(s.us)}
-              className={[
-                "aspect-square rounded-xl border-[1.5px] font-semibold grid place-items-center transition-colors",
-                size === s.us ? "bg-nav border-nav text-white" : "border-line-2 bg-surface text-ink",
-              ].join(" ")}
-            >
-              {s.us}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="mb-6">
-        <Note>
-          Not sure? <Link href="/sizing" className="font-semibold underline">Use the size calculator</Link> or add a{" "}
-          <button onClick={handleAddSizingKit} className="font-semibold underline">
-            free sizing kit
-          </button>{" "}
-          and we&rsquo;ll help you fit before we ship.
-          {kitAdded && <span className="block mt-1.5 text-sage font-semibold">✓ Sizing kit added to your bag</span>}
-        </Note>
+        <div className="font-mono text-xs tracking-[0.1em] uppercase text-muted mb-3">Select size</div>
+
+        <button
+          type="button"
+          onClick={() => setSizeMode("kit")}
+          className={[
+            "w-full flex gap-3.5 items-start text-left p-4 rounded-xl border-[1.5px] transition-colors mb-2.5",
+            sizeMode === "kit" ? "border-gold bg-gold-tint/40" : "border-line-2 bg-surface",
+          ].join(" ")}
+        >
+          <div className="relative w-14 h-14 shrink-0 overflow-hidden rounded-lg">
+            <Image src={SIZING_KIT_IMAGE} alt="Free sizing kit" fill sizes="56px" className="object-cover" />
+          </div>
+          <div>
+            <div className="font-semibold text-[0.95rem] mb-0.5">Free Sizing Kit</div>
+            <p className="text-[0.82rem] text-muted m-0">
+              After placing your order, a complimentary sizing kit will be sent to you, helping you determine a
+              perfect size for you.
+            </p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSizeMode("known")}
+          className={[
+            "w-full flex justify-between items-center text-left py-3.5 px-4 rounded-xl border-[1.5px] transition-colors",
+            sizeMode === "known" ? "border-gold" : "border-line-2 bg-surface",
+          ].join(" ")}
+        >
+          <span className="font-semibold text-[0.95rem]">I know my size</span>
+          <Icon
+            name="chevron"
+            size={16}
+            className={["transition-transform", sizeMode === "known" ? "rotate-90" : ""].join(" ")}
+          />
+        </button>
+
+        {sizeMode === "known" && (
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mt-3">
+            {SIZES.map((s) => (
+              <button
+                key={s.us}
+                onClick={() => setSize(s.us)}
+                className={[
+                  "aspect-square rounded-xl border-[1.5px] font-semibold grid place-items-center transition-colors",
+                  size === s.us ? "bg-nav border-nav text-white" : "border-line-2 bg-surface text-ink",
+                ].join(" ")}
+              >
+                {s.us}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-4 mb-5">
@@ -141,13 +161,13 @@ export function ProductInfo() {
 
       <button
         onClick={handleAddToBag}
-        disabled={!size}
+        disabled={!canAddToBag}
         className="w-full bg-gold text-white font-semibold py-4 rounded-pill inline-flex items-center justify-center gap-2.5 hover:bg-gold-deep transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-6"
       >
         <Icon name="cart" size={18} />
         {added ? "Added to bag ✓" : `Add to bag · ${formatINR(SITE.priceInPaise)}`}
       </button>
-      {!size && <p className="text-[0.82rem] text-muted -mt-4 mb-6 text-center">Select a size to continue</p>}
+      {!canAddToBag && <p className="text-[0.82rem] text-muted -mt-4 mb-6 text-center">Select a size to continue</p>}
 
       <div className="grid grid-cols-2 gap-3 mb-6">
         {HIGHLIGHTS.map((h) => (

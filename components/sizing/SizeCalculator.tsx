@@ -6,7 +6,7 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { Note } from "@/components/ui/Note";
 import { SIZES } from "@/lib/content/product";
 import { SIZING_TIP } from "@/lib/content/sizing";
-import { GALLERY } from "@/lib/content/shop";
+import { SIZING_KIT_IMAGE } from "@/lib/content/shop";
 import { useCart } from "@/lib/cart-context";
 
 type Mode = "circumference" | "diameter";
@@ -39,7 +39,7 @@ export function SizeCalculator() {
   }
 
   function handleAddSizingKit() {
-    addItem({ id: "kit", name: "Free sizing kit", finish: "", size: "", price: 0, qty: 1, image: GALLERY[0].src });
+    addItem({ id: "kit", name: "Free sizing kit", finish: "", size: "", price: 0, qty: 1, image: SIZING_KIT_IMAGE });
     setKitAdded(true);
     setTimeout(() => setKitAdded(false), 2200);
   }

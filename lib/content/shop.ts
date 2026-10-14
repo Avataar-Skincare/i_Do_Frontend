@@ -22,6 +22,9 @@ export const GALLERY: Array<{ src: string; alt: string }> = [
   { src: `${CDN}/ring_5.webp`, alt: "i do smart ring, gold finish, resting on its box" },
 ];
 
+/** The free sizing kit's own cart-line image — distinct from the ring itself (GALLERY[0]). */
+export const SIZING_KIT_IMAGE = `${CDN}/ring_4.webp`;
+
 export const HIGHLIGHTS: Array<{ icon: IconName; text: string }> = [
   { icon: "gem", text: "2.9g titanium" },
   { icon: "heart", text: "No subscription" },

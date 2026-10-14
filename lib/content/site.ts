@@ -28,7 +28,6 @@ export const NAV: Array<[href: string, label: string]> = [
   ["/shop", "Shop"],
   ["/ring", "The Ring"],
   ["/app", "The App"],
-  ["/sizing", "Sizing"],
   ["/consults", "Consults"],
   ["/about", "About"],
   ["/journal", "Journal"],
