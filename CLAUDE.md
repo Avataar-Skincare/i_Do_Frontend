@@ -129,19 +129,30 @@ photo, so the kit reads as its own distinct thing in the cart.
 - Components: PascalCase, one per file, colocate small subcomponents.
 - Every new page needs a route, a loading state, and an empty state.
 
-## Hosting (planned, nothing live yet — 2026-10-14)
+## Hosting and deploys (live on test since 2026-10-19)
 
-Not deployed. Plan: runs as a container on a new dedicated "ring" EC2 box alongside
-`i_Do_Backend` and `lume-backend` (prod + staging), behind nginx, at
-`idowellness.ai`. See `i_Do_Backend/CLAUDE.md` for the fuller infra plan.
+Live at **`https://test.idowellness.ai`** (ido-test server), calling the API at
+`https://test-api.idowellness.ai`. Prod (`idowellness.ai`) comes from 29 Oct.
+
+**Branches:** feature → PR into **`testing`** → deployed to test automatically (~5 min; watch the
+Actions tab) → PR `testing` → `main` for prod. Never push straight to `main`.
+
+**`NEXT_PUBLIC_API_URL` is baked in at build time** (it ends up in the JavaScript sent to browsers),
+so the deploy workflow passes it as a Docker build arg and the image is environment-specific: test
+images are tagged `test-<short sha>` in ECR `ido/website-frontend`; prod will build its own. Never put
+a secret in any `NEXT_PUBLIC_*` variable — every visitor can read it.
+
+Pipeline details (OIDC, ECR, the locked deploy script, rollback) and the server layout are in
+`../i_Do_Backend/CLAUDE.md` → Hosting and deploys; the server definitions live in
+`i_Do_Backend/infra/ido-test/`.
 
 ## Known gaps
 
 - `lib/content/site.ts`'s `SITE` object still has placeholder contact info (support
   email, phone, WhatsApp number, registered address, GSTIN, CIN) — real values needed
   before public launch.
-- Razorpay checkout is fully wired but not live — the backend is waiting on real
-  test-mode keys.
+- Razorpay checkout is wired; the test backend now has **test-mode** keys (no real money). Live keys
+  come at launch.
 - WhatsApp OTP (alongside the working SMS OTP) is built but not live on the backend —
   waiting on real Messenger-gateway credentials.
-- No automated tests, no CI.
+- No automated tests. CI builds and deploys to test, but has no test step.
