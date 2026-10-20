@@ -20,6 +20,11 @@ name: Deploy to ido-test
 on:
   push:
     branches: [testing]
+    # Doc-only merges don't rebuild or restart anything (saves Actions minutes).
+    # Need a deploy anyway? Actions -> "Deploy to ido-test" -> Run workflow.
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
   workflow_dispatch:
 
 permissions:
