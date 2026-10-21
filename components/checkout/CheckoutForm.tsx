@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
@@ -11,11 +11,13 @@ import { CHECKOUT_PERKS, CHECKOUT_DEMO_NOTE } from "@/lib/content/cart";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { AuthModal } from "@/components/account/AuthModal";
-import { saveOrder } from "@/lib/orders-storage";
-import { createRazorpayOrder, payWithRazorpay } from "@/lib/razorpay";
+import { createOrder, verifyPayment, type CreateOrderInput } from "@/lib/orders-storage";
+import { getCatalog, quoteOrder, type Catalog, type FinishId, type PaymentMethod, type Quote } from "@/lib/catalog";
+import { payWithRazorpay, PaymentNotCompletedError } from "@/lib/razorpay";
 import { ApiError } from "@/lib/api";
 
-type PaymentMethod = "online" | "cod";
+/** A quote is only valid for the finish, payment method and PIN it was fetched for. */
+type QuoteState = { key: string; quote: Quote };
 
 type Fields = {
   name: string;
@@ -70,15 +72,52 @@ export function CheckoutForm() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("online");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [paymentIncomplete, setPaymentIncomplete] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [prefilledFor, setPrefilledFor] = useState<string | null>(null);
+  const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [quoteState, setQuoteState] = useState<QuoteState | null>(null);
+  // One Idempotency-Key per checkout attempt: reused on a retry of the same details
+  // (so "Payment not completed. Try again" resumes the same pending order), and a
+  // fresh key as soon as anything the order depends on changes.
+  const attempt = useRef<{ sig: string; key: string } | null>(null);
 
-  const codFee = paymentMethod === "cod" ? SITE.codFeeInPaise : 0;
-  const total = cartSubtotal + codFee;
+  const finishId = (cart[0]?.finishId ?? "gold") as FinishId;
+  const pinValid = /^\d{6}$/.test(fields.pin);
+  const quoteKey = `${finishId}|${paymentMethod}|${fields.pin}`;
+  const quote = quoteState?.key === quoteKey ? quoteState.quote : null;
+
+  // Display figures only: the server prices the order itself (POST /orders re-quotes).
+  const subtotal = quote?.subtotal ?? cartSubtotal;
+  const codFee = quote ? quote.codFee : paymentMethod === "cod" ? (catalog?.codFeePaise ?? SITE.codFeeInPaise) : 0;
+  const total = quote?.total ?? subtotal + codFee;
+  const codEnabled = catalog?.codEnabled ?? true;
+  const codBlocked = paymentMethod === "cod" && quote !== null && !quote.codAvailable;
 
   function setField(key: keyof Fields, value: string) {
     setFields((f) => ({ ...f, [key]: value }));
   }
+
+  useEffect(() => {
+    let live = true;
+    getCatalog()
+      .then((c) => live && setCatalog(c))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pinValid) return;
+    let live = true;
+    quoteOrder({ finish: finishId, paymentMethod, pin: fields.pin })
+      .then((q) => live && setQuoteState({ key: quoteKey, quote: q }))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [finishId, paymentMethod, fields.pin, pinValid, quoteKey]);
 
   // Prefill from the account once we know who's logged in — doesn't clobber
   // anything the person already typed while browsing. Done while rendering (React's
@@ -97,49 +136,52 @@ export function CheckoutForm() {
     setShowAuthModal(false);
     setSubmitting(true);
     setSubmitError(null);
-    try {
-      const basePayload = {
-        items: cart,
-        subtotal: cartSubtotal,
-        codFee,
-        total,
-        paymentMethod,
-        customer: {
-          name: fields.name,
-          email: fields.email,
-          phone: fields.phone,
-          ...(wantGstBill
-            ? { buyerGstin: fields.buyerGstin.toUpperCase(), buyerLegalName: fields.buyerLegalName.trim() }
-            : {}),
-        },
-        address: { line: fields.address, city: fields.city, state: fields.state, pin: fields.pin },
-      };
+    setPaymentIncomplete(false);
 
-      let saved;
-      if (paymentMethod === "online") {
-        // Order only gets created in our DB after a real, verified Razorpay payment —
-        // never before. See OrdersService.create on the backend for the signature check.
-        const razorpayOrder = await createRazorpayOrder(total);
-        const payment = await payWithRazorpay(razorpayOrder, {
+    const input: CreateOrderInput = {
+      finish: finishId,
+      paymentMethod,
+      customer: { name: fields.name.trim(), email: fields.email.trim(), phone: fields.phone },
+      address: { line: fields.address.trim(), city: fields.city.trim(), state: fields.state.trim(), pin: fields.pin },
+      ...(wantGstBill
+        ? { buyerGstin: fields.buyerGstin.toUpperCase(), buyerLegalName: fields.buyerLegalName.trim() }
+        : {}),
+    };
+    const sig = JSON.stringify(input);
+    if (attempt.current?.sig !== sig) attempt.current = { sig, key: crypto.randomUUID() };
+
+    try {
+      const { order, razorpay } = await createOrder(input, attempt.current.key);
+
+      if (paymentMethod === "online" && razorpay && order.status === "pending_payment") {
+        const proof = await payWithRazorpay(razorpay, {
           name: fields.name,
           email: fields.email,
           phone: fields.phone,
         });
-        saved = await saveOrder({ ...basePayload, ...payment });
-      } else {
-        saved = await saveOrder(basePayload);
+        try {
+          await verifyPayment(order.id, proof);
+        } catch (err) {
+          // A bad signature is a real failure. Anything else (network, timeout): the
+          // customer has paid and Razorpay's webhook is the source of truth, so go to
+          // /confirm, which keeps checking until the payment settles.
+          if (err instanceof ApiError && err.code === "SIGNATURE_INVALID") throw err;
+        }
       }
 
       clearCart();
-      router.push(`/confirm?orderId=${saved.id}`);
+      router.push(`/confirm?orderId=${order.id}`);
     } catch (err) {
-      setSubmitError(
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Couldn't place your order — check your connection and try again."
-      );
+      if (err instanceof PaymentNotCompletedError) {
+        setPaymentIncomplete(true);
+        setSubmitError(err.message);
+      } else if (err instanceof ApiError) {
+        if (err.code === "GSTIN_INVALID") setErrors((e) => ({ ...e, buyerGstin: err.message }));
+        if (err.status === 401) setShowAuthModal(true);
+        setSubmitError(err.message);
+      } else {
+        setSubmitError("Couldn't place your order — check your connection and try again.");
+      }
       setSubmitting(false);
     }
   }
@@ -149,6 +191,7 @@ export function CheckoutForm() {
     const found = validate(fields, wantGstBill);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
+    if (codBlocked) return;
 
     if (!user) {
       setShowAuthModal(true);
@@ -268,6 +311,7 @@ export function CheckoutForm() {
             />
             <PaymentOption
               active={paymentMethod === "cod"}
+              disabled={!codEnabled}
               onClick={() => setPaymentMethod("cod")}
               title="Cash on Delivery"
               badge={`+${formatINR(SITE.codFeeInPaise)}`}
@@ -303,25 +347,35 @@ export function CheckoutForm() {
         </div>
         <div className="flex justify-between py-1.5 text-[0.94rem] text-ink-2">
           <span>Subtotal</span>
-          <span>{formatINR(cartSubtotal)}</span>
+          <span>{formatINR(subtotal)}</span>
         </div>
         <div className="flex justify-between py-1.5 text-[0.94rem] text-ink-2">
-          <span>Shipping</span>
+          <span>{codFee ? "COD handling fee" : "Shipping"}</span>
           <span className={codFee ? "" : "text-sage font-semibold"}>{codFee ? formatINR(codFee) : "Free"}</span>
         </div>
         <div className="flex justify-between items-baseline pt-4 mt-2 border-t border-line font-semibold">
           <span>Total</span>
           <span className="font-serif text-[1.7rem] font-medium">{formatINR(total)}</span>
         </div>
+        {!quote && <p className="text-[0.78rem] text-muted mt-2 mb-0">Final total confirmed once you enter your PIN code.</p>}
+        {codBlocked && (
+          <p className="text-[0.85rem] text-error mt-3.5 mb-0" role="alert">
+            {quote?.codReason === "cod_disabled"
+              ? "Cash on Delivery isn't available right now. Please pay online."
+              : "Cash on Delivery isn't available for this pincode. Please pay online."}
+          </p>
+        )}
         {submitError && (
-          <p className="text-[0.85rem] text-error mt-3.5 mb-0">{submitError}</p>
+          <p className="text-[0.85rem] text-error mt-3.5 mb-0" role="alert">
+            {submitError}
+          </p>
         )}
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || codBlocked}
           className="w-full bg-gold text-white font-semibold py-4 rounded-pill mt-4.5 hover:bg-gold-deep transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {submitting ? "Placing order…" : "Place order"}
+          {submitting ? "Placing order…" : paymentIncomplete ? "Try payment again" : "Place order"}
         </button>
         <div className="flex flex-col gap-2.5 mt-5">
           {CHECKOUT_PERKS.map((perk) => (
@@ -389,6 +443,7 @@ function Field({
 
 function PaymentOption({
   active,
+  disabled,
   onClick,
   title,
   badge,
@@ -396,6 +451,7 @@ function PaymentOption({
   body,
 }: {
   active: boolean;
+  disabled?: boolean;
   onClick: () => void;
   title: string;
   badge: string;
@@ -406,8 +462,9 @@ function PaymentOption({
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={[
-        "text-left flex gap-3.5 items-start p-4.5 rounded-sm border-[1.5px] transition-colors",
+        "text-left flex gap-3.5 items-start p-4.5 rounded-sm border-[1.5px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
         active ? "border-gold bg-gold-tint" : "border-line-2 bg-surface",
       ].join(" ")}
     >

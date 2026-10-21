@@ -79,27 +79,33 @@ different account types:
 
 ## Cart & checkout
 
-- **Cart is `localStorage` only** — no backend table, by design. An `Order` is what
-  gets persisted; the cart itself is ephemeral. The `Order` type in
-  `lib/orders-storage.ts` mirrors `i_Do_Backend/src/orders/entities/order.entity.ts`
-  — change both together.
-- `CartItem` dedup key is `id + finish + size` — adding the same combo again just
-  bumps `qty`. Decrementing qty to 0 (the "−" button in `CartLineItem.tsx`) removes
-  the line entirely, same end result as the explicit "Remove" button.
-- **Flow**: cart (localStorage) → `/checkout` → COD calls `saveOrder()` directly;
-  online payment creates a Razorpay order first (`POST /orders/razorpay-order`),
-  opens Checkout.js, then calls `saveOrder()` with the signed payment — the backend
-  re-verifies the signature server-side before persisting anything, the frontend's
-  own claim of success is never trusted alone. Both paths `clearCart()` and redirect
-  to `/confirm?orderId=...` only on real success.
-  ⚠️ **The order total is computed here, in the browser, and the backend currently
-  trusts it as sent** — see the Known gaps in `i_Do_Backend/CLAUDE.md`. Don't add
-  more client-trusted money fields until that's fixed.
-- Order/consult status shown on `/confirm` and the account dashboard is **simulated**
-  client-side from days elapsed since the order date (`lib/order-status.ts`, ported
-  from the prototype's `ORDER_STAGES`) — there's no real fulfillment backend yet. Once
-  shipment tracking (e.g. Delhivery) exists, this needs to be replaced with the real
-  `order.status`, not patched further.
+Built against the API contract (`../i_Do_Backend/api/openapi.yaml`, v1.0.0). Amounts are
+integer paise and **the client never sends a price**.
+
+- **Cart is `localStorage` only** (`lib/cart-context.tsx`, via `useSyncExternalStore`) and holds
+  at most **one ring** (qty fixed at 1; adding again replaces it). It stores `finishId`
+  (gold, silver, black) for the API. An `Order` is what gets persisted, by the backend.
+- **Catalog and quote** (`lib/catalog.ts`): `GET /catalog` gives the display price, COD fee
+  and whether COD is on; `POST /orders/quote {finish, paymentMethod, pin}` gives the server's
+  totals and `codAvailable` once a 6-digit PIN is entered. Totals shown before that are
+  estimates. A quote is only used for the finish, method and PIN it was fetched for.
+- **Placing an order** (`components/checkout/CheckoutForm.tsx`, `lib/orders-storage.ts`):
+  `POST /orders` with an `Idempotency-Key`. One key per checkout attempt: reused when the
+  same details are retried (so "Payment not completed. Try again" resumes the same pending
+  order), a fresh key as soon as any detail changes. Online orders return a `razorpay`
+  object; the widget opens (`lib/razorpay.ts`), then `POST /orders/{id}/payment/verify`
+  sends the result. Closing the widget raises `PaymentNotCompletedError` and returns to
+  checkout with the cart intact. A verify failure other than `SIGNATURE_INVALID` still goes to
+  `/confirm`, because Razorpay's webhook is the source of truth. COD orders go straight to
+  `/confirm` as `cod_pending` (ops confirm by phone or WhatsApp).
+- **Errors** carry the contract's `code` (`ApiError.code`): `STORE_NOT_LIVE` (launch gate
+  closed), `COD_NOT_SERVICEABLE`, `GSTIN_INVALID`, `SIGNATURE_INVALID`,
+  `ACCOUNT_HAS_OPEN_ORDER`. Branch on the code; show the server's `message`.
+- **`/confirm`** reads `GET /orders/{id}` (owner only) and keeps polling every 4 s for about
+  12 minutes while the status is `pending_payment` ("Confirming your payment…").
+- **Order status** shown on `/confirm` and the account pages is the real `order.status`
+  (`lib/order-status.ts`: the 9 states from LLD §3.1). `GET /orders/mine` never returns
+  `pending_payment` orders.
 
 ## Sizing: the kit is included, the customer never picks a size at order time
 

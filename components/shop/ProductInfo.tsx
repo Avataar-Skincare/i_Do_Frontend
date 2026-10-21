@@ -24,6 +24,7 @@ export function ProductInfo() {
       id: "ring",
       name: PRODUCT.name,
       finish: finish.name,
+      finishId: finish.id,
       size: "Sizing kit included",
       price: SITE.priceInPaise,
       qty: 1,

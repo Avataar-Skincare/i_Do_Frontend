@@ -2,9 +2,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3011";
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  /** Stable machine-readable code from the contract (e.g. STORE_NOT_LIVE); branch on this, show `message`. */
+  code?: string;
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -21,7 +24,7 @@ async function rawRequest<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const message = Array.isArray(body.message) ? body.message.join(", ") : body.message;
-    throw new ApiError(res.status, message || `Request to ${path} failed (${res.status})`);
+    throw new ApiError(res.status, message || `Request to ${path} failed (${res.status})`, body.code);
   }
   return res.json();
 }

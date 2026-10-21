@@ -5,6 +5,10 @@ import type { Order } from "@/lib/orders-storage";
 export function TrackTimeline({ order }: { order: Order }) {
   const idx = orderStageIndex(order);
 
+  if (order.status === "cancelled") {
+    return <p className="text-[0.95rem] text-ink-2">This order was cancelled.</p>;
+  }
+
   return (
     <div>
       {ORDER_STAGES.map((stage, i) => {

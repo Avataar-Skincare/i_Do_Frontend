@@ -1,11 +1,14 @@
 "use client";
 
 import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { FINISHES } from "@/lib/content/product";
 
 export type CartItem = {
   id: string;
   name: string;
   finish: string;
+  /** The API id (gold, silver, black); optional only for carts saved before this field existed. */
+  finishId?: string;
   size: string;
   price: number; // paise
   qty: number;
@@ -31,7 +34,9 @@ function parseCart(raw: string): CartItem[] {
   try {
     const stored: CartItem[] = raw ? JSON.parse(raw) : [];
     const ring = stored.find((i) => i.id === "ring");
-    return ring ? [{ ...ring, qty: 1, size: "Sizing kit included" }] : [];
+    if (!ring) return [];
+    const finishId = ring.finishId ?? FINISHES.find((f) => f.name === ring.finish)?.id ?? "gold";
+    return [{ ...ring, finishId, qty: 1, size: "Sizing kit included" }];
   } catch {
     return [];
   }
