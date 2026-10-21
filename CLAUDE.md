@@ -52,30 +52,36 @@ framework.
 
 | Path | What lives there |
 |---|---|
-| `app/` | Routes: `/` (home), `/ring`, `/app`, `/about`, `/journal`, `/journal/[slug]`, `/sizing`, `/support`, `/legal/[slug]`, `/shop`, `/cart`, `/checkout`, `/confirm`, `/account`, `/claim-order`, `/reset-password`, `/consults` |
+| `app/` | Routes: `/` (home), `/ring`, `/app`, `/about`, `/journal`, `/journal/[slug]`, `/sizing`, `/support`, `/legal/[slug]`, `/shop`, `/cart`, `/checkout`, `/confirm`, `/account`, `/consults` |
 | `components/<page>/` | Components grouped by the page that uses them; shared primitives in `components/ui/`, header/footer in `components/layout/` |
 | `lib/content/*.ts` | **All site copy and product data** (prices, specs, FAQs, legal, journal). Edit text here, not in JSX |
-| `lib/api.ts` | The only HTTP client — `apiGet/Post/Patch/Delete`, `withAuth(token)`, `ApiError` |
-| `lib/auth-context.tsx` | Auth state; JWT in `localStorage["ido_auth_token"]`. Email+password or passwordless phone OTP |
+| `lib/api.ts` | The only HTTP client — `apiGet/Post/Patch/Delete`, silent 401 refresh, `ApiError` (with the contract `code`) |
+| `lib/auth-context.tsx` | Auth state; cookie session, passwordless email or phone OTP |
 | `lib/cart-context.tsx` | Cart in `localStorage["ido_cart"]` — client-only, never sent until checkout |
 | `lib/orders-storage.ts`, `lib/consults-storage.ts` | Thin API wrappers (despite the names, nothing is stored locally) |
 | `lib/razorpay.ts` | Lazy-loads Checkout.js, creates the Razorpay order via the backend, returns the signed payment |
 
 ## Auth
 
-`lib/auth-context.tsx` + `components/account/AuthForm.tsx`. Two genuinely different
-flows behind one top-level email/phone toggle, because the backend treats them as
-different account types:
-- **Email**: password-based. `register()` doesn't persist a session immediately —
-  it sets `pendingVerification` and the UI moves to a 6-digit code step
-  (`verifyEmail()`); only on success does a real token get written.
-- **Phone**: passwordless. There is no password field at all for this path — entering
-  a phone number + submitting a 6-digit code (`sendPhoneOtp`/`verifyPhoneOtp`) is the
-  entire flow, and it works identically whether the phone is new or returning
-  (creates-or-logs-in in one call, mirroring the backend).
-- `AuthModal.tsx` wraps `AuthForm` for the "log in to continue" interrupt pattern used
-  by both checkout and consult booking — placing an order or booking a consult
-  requires an account (backend-enforced); browsing/filling the form doesn't.
+Passwordless, decided final: **email OTP or phone OTP, no password anywhere** (no register,
+login, forgot-password, reset-password or verify-email screens). One form
+(`components/account/AuthForm.tsx`) with an email/phone toggle: enter the address, enter the
+6-digit code, done. It works the same for a new and a returning account (the first
+successful code creates the account). `lib/auth-context.tsx` exposes
+`sendEmailOtp/verifyEmailOtp` and `sendPhoneOtp/verifyPhoneOtp`.
+
+- **Session = HttpOnly cookies** (`ido_at` 15 min, `ido_rt` 60 days) set by the API;
+  `lib/api.ts` sends `credentials: "include"` and `X-Requested-With: ido`, and on a 401 makes
+  one silent `POST /auth/refresh` and replays the request. No token is ever stored in
+  `localStorage` or readable by this code.
+- `AuthModal` wraps `AuthForm` for the "log in to continue" interrupt used by checkout and
+  consult booking; it takes an `onSuccess` callback to carry on after login. An order or
+  booking needs an account (backend-enforced); browsing and filling the form doesn't.
+- **Contract gap:** API contract v1.0.0 only defines `/auth/phone/send-otp` and
+  `/auth/phone/verify-otp` for OTP login. The email calls (`/auth/email/send-otp`,
+  `/auth/email/verify-otp`) are not in the contract or the backend yet, so email sign-in
+  can't work (or be mocked) until they are added. Per Dev Sync, log the change under
+  "API contract changes" first.
 
 ## Cart & checkout
 
