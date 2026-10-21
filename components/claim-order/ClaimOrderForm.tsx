@@ -26,7 +26,6 @@ export function ClaimOrderForm() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [fullName, setFullName] = useState("");
-  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -44,14 +43,10 @@ export function ClaimOrderForm() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!token) return;
-    if (!info?.hasAccount && password.length < 8) {
-      setSubmitError("At least 8 characters");
-      return;
-    }
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await claimOrder(token, info?.hasAccount ? undefined : { password, fullName: fullName.trim() });
+      await claimOrder(token, info?.hasAccount ? undefined : { fullName: fullName.trim() });
       router.push("/account");
     } catch (err) {
       setSubmitError(err instanceof ApiError ? err.message : "Something went wrong — check your connection and try again.");
@@ -88,35 +83,21 @@ export function ClaimOrderForm() {
       <p className="text-center text-[0.92rem] mb-6.5 text-muted">
         {info?.hasAccount
           ? `We'll attach order ${info.orderId} to your existing account (${info.email}).`
-          : `Order ${info?.orderId} — set a password for ${info?.email} to track it (and future orders) from your account.`}
+          : `Order ${info?.orderId} — we'll create an account for ${info?.email} so you can track it (and future orders).`}
       </p>
 
       <div className="bg-surface border border-line rounded-lg p-8.5">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {!info?.hasAccount && (
-            <>
-              <div>
-                <label className="block text-[0.82rem] font-medium text-ink-2 mb-1.5">Full name</label>
-                <input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Your name"
-                  className={inputClass(false)}
-                />
-              </div>
-              <div>
-                <label className="block text-[0.82rem] font-medium text-ink-2 mb-1.5">
-                  Password <span className="text-gold-deep">*</span>
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className={inputClass(!!submitError)}
-                />
-              </div>
-            </>
+            <div>
+              <label className="block text-[0.82rem] font-medium text-ink-2 mb-1.5">Full name</label>
+              <input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Your name"
+                className={inputClass(false)}
+              />
+            </div>
           )}
 
           {submitError && <p className="text-[0.85rem] text-error m-0">{submitError}</p>}

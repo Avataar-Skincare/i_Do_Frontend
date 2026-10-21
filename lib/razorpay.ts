@@ -1,5 +1,4 @@
-import { apiPost, withAuth } from "@/lib/api";
-import { getAuthToken } from "@/lib/auth-context";
+import { apiPost } from "@/lib/api";
 
 const CHECKOUT_SCRIPT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
 
@@ -7,7 +6,7 @@ export type RazorpayOrder = { id: string; amount: number; currency: string; keyI
 
 /** `amount` is in paise — backend creates the real order on Razorpay's side before the widget opens. */
 export function createRazorpayOrder(amount: number): Promise<RazorpayOrder> {
-  return apiPost<RazorpayOrder>("/orders/razorpay-order", { amount }, withAuth(getAuthToken()));
+  return apiPost<RazorpayOrder>("/orders/razorpay-order", { amount });
 }
 
 export type RazorpayPaymentResult = {

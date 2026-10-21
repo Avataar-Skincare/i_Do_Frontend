@@ -10,7 +10,6 @@ import { OverviewTab } from "./OverviewTab";
 import { OrdersTab } from "./OrdersTab";
 import { ConsultsTab } from "./ConsultsTab";
 import { TrackTab } from "./TrackTab";
-import { VerifyEmailBanner } from "./VerifyEmailBanner";
 
 type Tab = "overview" | "orders" | "consults" | "track";
 
@@ -46,7 +45,6 @@ export function AccountDashboard() {
   return (
     <div>
       <h1 className="font-serif font-medium text-3xl mb-6">Your account</h1>
-      <VerifyEmailBanner />
       <div className="grid grid-cols-1 lg:grid-cols-[230px_1fr] gap-8">
         <nav className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible lg:sticky lg:top-[90px] lg:self-start">
           {NAV.map((item) => (

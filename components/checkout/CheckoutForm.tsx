@@ -17,12 +17,34 @@ import { ApiError } from "@/lib/api";
 
 type PaymentMethod = "online" | "cod";
 
-type Fields = { name: string; email: string; phone: string; address: string; city: string; state: string; pin: string };
+type Fields = {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pin: string;
+  buyerGstin: string;
+  buyerLegalName: string;
+};
 type Errors = Partial<Record<keyof Fields, string>>;
 
-const EMPTY_FIELDS: Fields = { name: "", email: "", phone: "", address: "", city: "", state: "", pin: "" };
+const EMPTY_FIELDS: Fields = {
+  name: "",
+  email: "",
+  phone: "",
+  address: "",
+  city: "",
+  state: "",
+  pin: "",
+  buyerGstin: "",
+  buyerLegalName: "",
+};
 
-function validate(fields: Fields): Errors {
+const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+
+function validate(fields: Fields, wantGstBill: boolean): Errors {
   const errors: Errors = {};
   if (!fields.name.trim()) errors.name = "Enter your full name";
   if (!/^\S+@\S+\.\S+$/.test(fields.email)) errors.email = "Enter a valid email";
@@ -31,6 +53,10 @@ function validate(fields: Fields): Errors {
   if (!fields.city.trim()) errors.city = "Enter your city";
   if (!fields.state.trim()) errors.state = "Enter your state";
   if (!/^\d{6}$/.test(fields.pin)) errors.pin = "Enter a 6-digit PIN code";
+  if (wantGstBill) {
+    if (!GSTIN_RE.test(fields.buyerGstin.toUpperCase())) errors.buyerGstin = "Enter a valid 15-character GSTIN";
+    if (!fields.buyerLegalName.trim()) errors.buyerLegalName = "Enter your business name";
+  }
   return errors;
 }
 
@@ -40,6 +66,7 @@ export function CheckoutForm() {
   const { user } = useAuth();
   const [fields, setFields] = useState<Fields>(EMPTY_FIELDS);
   const [errors, setErrors] = useState<Errors>({});
+  const [wantGstBill, setWantGstBill] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("online");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -74,7 +101,14 @@ export function CheckoutForm() {
         codFee,
         total,
         paymentMethod,
-        customer: { name: fields.name, email: fields.email, phone: fields.phone },
+        customer: {
+          name: fields.name,
+          email: fields.email,
+          phone: fields.phone,
+          ...(wantGstBill
+            ? { buyerGstin: fields.buyerGstin.toUpperCase(), buyerLegalName: fields.buyerLegalName.trim() }
+            : {}),
+        },
         address: { line: fields.address, city: fields.city, state: fields.state, pin: fields.pin },
       };
 
@@ -120,7 +154,7 @@ export function CheckoutForm() {
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const found = validate(fields);
+    const found = validate(fields, wantGstBill);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
@@ -169,6 +203,37 @@ export function CheckoutForm() {
               />
             </Field>
           </div>
+
+          <label className="flex items-center gap-2.5 text-[0.9rem] text-ink-2 mt-1 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={wantGstBill}
+              onChange={(e) => setWantGstBill(e.target.checked)}
+              className="w-4.5 h-4.5 accent-gold"
+            />
+            I need a GST invoice for this order
+          </label>
+
+          {wantGstBill && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="GST number" required error={errors.buyerGstin}>
+                <input
+                  value={fields.buyerGstin}
+                  onChange={(e) => setField("buyerGstin", e.target.value.toUpperCase().slice(0, 15))}
+                  placeholder="15-character GSTIN"
+                  className={inputClass(!!errors.buyerGstin)}
+                />
+              </Field>
+              <Field label="Business name" required error={errors.buyerLegalName}>
+                <input
+                  value={fields.buyerLegalName}
+                  onChange={(e) => setField("buyerLegalName", e.target.value)}
+                  placeholder="Registered business name"
+                  className={inputClass(!!errors.buyerLegalName)}
+                />
+              </Field>
+            </div>
+          )}
         </FormSection>
 
         <FormSection number={2} title="Shipping address">
