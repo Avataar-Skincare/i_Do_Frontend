@@ -12,7 +12,7 @@ export type Order = {
   customer: { name: string; email: string; phone: string; buyerGstin?: string | null; buyerLegalName?: string | null };
   address: { line: string; city: string; state: string; pin: string };
   status: string;
-  /** Null for a guest order — see components/claim-order/. */
+  /** Always set: orders require an account. */
   userId: string | null;
   /** Both null for COD — only ever set once a Razorpay payment is verified server-side. */
   razorpayOrderId: string | null;

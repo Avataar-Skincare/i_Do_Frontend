@@ -6,8 +6,8 @@ import { formatINR } from "@/lib/format";
 import { useCart, type CartItem } from "@/lib/cart-context";
 
 export function CartLineItem({ item }: { item: CartItem }) {
-  const { updateQty, removeItem } = useCart();
-  const meta = [item.finish, item.size && `US ${item.size}`].filter(Boolean).join(" · ");
+  const { removeItem } = useCart();
+  const meta = [item.finish, /^\d+$/.test(item.size) ? `US ${item.size}` : item.size].filter(Boolean).join(" · ");
 
   return (
     <div className="flex gap-4.5 py-5.5 border-b border-line first:border-t">
@@ -19,25 +19,7 @@ export function CartLineItem({ item }: { item: CartItem }) {
         {meta && <p className="text-[0.85rem] text-muted mb-3">{meta}</p>}
         <div className="flex items-center gap-4 flex-wrap justify-between">
           <div className="flex items-center gap-4">
-            <div className="inline-flex items-center border-[1.5px] border-line-2 rounded-pill overflow-hidden">
-              <button
-                onClick={() =>
-                  item.qty <= 1
-                    ? removeItem(item.id, item.finish, item.size)
-                    : updateQty(item.id, item.finish, item.size, item.qty - 1)
-                }
-                className="w-9 h-9 grid place-items-center hover:bg-bg-3"
-              >
-                −
-              </button>
-              <span className="min-w-8 text-center font-semibold text-sm">{item.qty}</span>
-              <button
-                onClick={() => updateQty(item.id, item.finish, item.size, item.qty + 1)}
-                className="w-9 h-9 grid place-items-center hover:bg-bg-3"
-              >
-                +
-              </button>
-            </div>
+            <span className="text-[0.82rem] text-muted">One ring per order</span>
             <button
               onClick={() => removeItem(item.id, item.finish, item.size)}
               className="inline-flex items-center gap-1.5 text-[0.82rem] text-muted hover:text-[color:var(--color-error)]"
@@ -45,7 +27,7 @@ export function CartLineItem({ item }: { item: CartItem }) {
               <Icon name="close" size={13} /> Remove
             </button>
           </div>
-          <span className="font-serif text-[1.35rem] font-medium">{formatINR(item.price * item.qty)}</span>
+          <span className="font-serif text-[1.35rem] font-medium">{formatINR(item.price)}</span>
         </div>
       </div>
     </div>

@@ -29,7 +29,6 @@ type AuthContextValue = {
   sendPhoneOtp: (phone: string) => Promise<void>;
   /** Verifying logs the account in — creating it first if this phone has no account yet (fullName only used then). */
   verifyPhoneOtp: (phone: string, code: string, fullName?: string) => Promise<void>;
-  claimOrder: (token: string, opts?: { fullName?: string }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -85,14 +84,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
-  async function claimOrder(token: string, opts?: { fullName?: string }) {
-    const res = await apiPost<{ user: AuthUser }>("/auth/claim-order", {
-      token,
-      fullName: opts?.fullName,
-    });
-    setUser(res.user);
-  }
-
   return (
     <AuthContext.Provider
       value={{
@@ -104,7 +95,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         verifyEmailOtp,
         sendPhoneOtp,
         verifyPhoneOtp,
-        claimOrder,
       }}
     >
       {children}

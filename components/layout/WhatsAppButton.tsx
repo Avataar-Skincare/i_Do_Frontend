@@ -2,6 +2,7 @@ import { Icon } from "@/components/ui/Icon";
 import { SITE, WHATSAPP_MESSAGE } from "@/lib/content/site";
 
 export function WhatsAppButton() {
+  if (!SITE.waNumber) return null;
   const href = `https://wa.me/${SITE.waNumber}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
   return (
     <a

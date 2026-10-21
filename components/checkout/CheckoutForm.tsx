@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
@@ -71,6 +71,7 @@ export function CheckoutForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [prefilledFor, setPrefilledFor] = useState<string | null>(null);
 
   const codFee = paymentMethod === "cod" ? SITE.codFeeInPaise : 0;
   const total = cartSubtotal + codFee;
@@ -80,18 +81,20 @@ export function CheckoutForm() {
   }
 
   // Prefill from the account once we know who's logged in — doesn't clobber
-  // anything the person already typed while browsing.
-  useEffect(() => {
-    if (!user) return;
+  // anything the person already typed while browsing. Done while rendering (React's
+  // "adjust state when a prop changes" pattern) rather than in an effect.
+  if (user && prefilledFor !== user.id) {
+    setPrefilledFor(user.id);
     setFields((f) => ({
       ...f,
       name: f.name || user.fullName || "",
       email: f.email || user.email || "",
       phone: f.phone || user.phone || "",
     }));
-  }, [user]);
+  }
 
   async function placeOrder() {
+    setShowAuthModal(false);
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -140,17 +143,6 @@ export function CheckoutForm() {
       setSubmitting(false);
     }
   }
-
-  // Logging in inside the modal re-renders this with a `user` for the first
-  // time — if that happened while the modal was open for this exact reason,
-  // finish placing the order immediately instead of making them click twice.
-  useEffect(() => {
-    if (showAuthModal && user) {
-      setShowAuthModal(false);
-      void placeOrder();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -341,9 +333,10 @@ export function CheckoutForm() {
         </div>
       </div>
       </form>
-      {showAuthModal && (
+      {showAuthModal && !user && (
         <AuthModal
           onClose={() => setShowAuthModal(false)}
+          onSuccess={() => void placeOrder()}
           lead="Log in or create an account to place this order — we'll pick up right where you left off."
         />
       )}

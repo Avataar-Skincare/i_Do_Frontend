@@ -14,7 +14,6 @@ import { ProductAccordion } from "./ProductAccordion";
 export function ProductInfo() {
   const { addItem } = useCart();
   const [finishId, setFinishId] = useState(FINISHES[0].id);
-  const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
   const finish = FINISHES.find((f) => f.id === finishId)!;
@@ -27,7 +26,7 @@ export function ProductInfo() {
       finish: finish.name,
       size: "Sizing kit included",
       price: SITE.priceInPaise,
-      qty,
+      qty: 1,
       image: mainImage,
     });
     setAdded(true);
@@ -116,18 +115,7 @@ export function ProductInfo() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 mb-5">
-        <span className="font-mono text-xs tracking-[0.1em] uppercase text-muted">Qty</span>
-        <div className="inline-flex items-center border-[1.5px] border-line-2 rounded-pill overflow-hidden">
-          <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-10.5 h-10.5 grid place-items-center text-lg hover:bg-bg-3">
-            −
-          </button>
-          <span className="min-w-10 text-center font-semibold">{qty}</span>
-          <button onClick={() => setQty((q) => q + 1)} className="w-10.5 h-10.5 grid place-items-center text-lg hover:bg-bg-3">
-            +
-          </button>
-        </div>
-      </div>
+      <p className="text-[0.82rem] text-muted mb-4">One ring per order.</p>
 
       <button
         onClick={handleAddToBag}

@@ -138,12 +138,16 @@ export function Header() {
           >
             Shop {SITE.brand}
           </Link>
-          <span className="text-sm text-muted flex items-center gap-2">
-            <Icon name="phone" size={14} className="shrink-0" /> {SITE.phone}
-          </span>
-          <a className="text-sm text-gold-deep" href={`mailto:${SITE.email}`}>
-            {SITE.email}
-          </a>
+          {SITE.phone && (
+            <span className="text-sm text-muted flex items-center gap-2">
+              <Icon name="phone" size={14} className="shrink-0" /> {SITE.phone}
+            </span>
+          )}
+          {SITE.email && (
+            <a className="text-sm text-gold-deep" href={`mailto:${SITE.email}`}>
+              {SITE.email}
+            </a>
+          )}
         </div>
       </aside>
     </>

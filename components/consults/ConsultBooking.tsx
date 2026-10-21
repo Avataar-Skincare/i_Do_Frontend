@@ -261,9 +261,11 @@ export function ConsultBooking() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [myConsults, setMyConsults] = useState<StoredConsult[]>([]);
+  const [fetchedConsults, setMyConsults] = useState<StoredConsult[]>([]);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [prefilledFor, setPrefilledFor] = useState<string | null>(null);
 
+  const myConsults = user ? fetchedConsults : [];
   const days = useNextDays(10);
   const active = CONSULT_TYPES.find((t) => t.id === type)!;
   const sessionsForType = myConsults.filter((c) => c.type === type);
@@ -286,31 +288,19 @@ export function ConsultBooking() {
   // anything the person already typed while browsing as a guest. Email/phone
   // are collected here independently of the account either way (an account
   // can lack one of them), so this is just a convenience, not a requirement.
-  useEffect(() => {
-    if (user?.fullName && !name) setName(user.fullName);
-    if (user?.email && !email) setEmail(user.email);
-    if (user?.phone && !phone) setPhone(user.phone);
-  }, [user, name, email, phone]);
+  // Done while rendering (React's "adjust state when a prop changes" pattern).
+  if (user && prefilledFor !== user.id) {
+    setPrefilledFor(user.id);
+    if (user.fullName && !name) setName(user.fullName);
+    if (user.email && !email) setEmail(user.email);
+    if (user.phone && !phone) setPhone(user.phone);
+  }
 
   useEffect(() => {
-    if (!user) {
-      setMyConsults([]);
-      return;
-    }
+    if (!user) return;
     getMyConsults()
       .then(setMyConsults)
       .catch(() => setMyConsults([]));
-  }, [user]);
-
-  // Logging in inside the modal re-renders this with a `user` for the first
-  // time — if that happened while the modal was open for this exact reason,
-  // finish the booking immediately instead of making them click twice.
-  useEffect(() => {
-    if (showAuthModal && user) {
-      setShowAuthModal(false);
-      void confirmBooking();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   function selectType(next: ConsultTypeId) {
@@ -536,6 +526,10 @@ export function ConsultBooking() {
       {showAuthModal && (
         <AuthModal
           onClose={() => setShowAuthModal(false)}
+          onSuccess={() => {
+            setShowAuthModal(false);
+            void confirmBooking();
+          }}
           lead="Log in or create an account to confirm your booking — we'll pick up right where you left off."
         />
       )}

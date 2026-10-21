@@ -28,7 +28,7 @@ const SUPPORT_LINKS: Array<[string, string]> = [
 const PAYMENT_CHIPS = ["UPI", "RuPay", "Visa", "Mastercard", "COD", "Razorpay secured"];
 
 export function Footer() {
-  const waHref = `https://wa.me/${SITE.waNumber}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+  const waHref = SITE.waNumber ? `https://wa.me/${SITE.waNumber}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}` : null;
 
   return (
     <footer className="bg-nav-2 text-[#C8BCA5] pt-16 pb-7.5">
@@ -49,22 +49,26 @@ export function Footer() {
               >
                 <Icon name="ig" size={17} />
               </a>
-              <a
-                href={waHref}
-                target="_blank"
-                rel="noopener"
-                aria-label="WhatsApp"
-                className="w-[38px] h-[38px] rounded-full bg-white/6 grid place-items-center hover:bg-gold hover:text-white transition-colors"
-              >
-                <Icon name="wa" size={17} />
-              </a>
-              <a
-                href={`mailto:${SITE.email}`}
-                aria-label="Email"
-                className="w-[38px] h-[38px] rounded-full bg-white/6 grid place-items-center hover:bg-gold hover:text-white transition-colors"
-              >
-                <Icon name="mail" size={17} />
-              </a>
+              {waHref && (
+                <a
+                  href={waHref}
+                  target="_blank"
+                  rel="noopener"
+                  aria-label="WhatsApp"
+                  className="w-[38px] h-[38px] rounded-full bg-white/6 grid place-items-center hover:bg-gold hover:text-white transition-colors"
+                >
+                  <Icon name="wa" size={17} />
+                </a>
+              )}
+              {SITE.email && (
+                <a
+                  href={`mailto:${SITE.email}`}
+                  aria-label="Email"
+                  className="w-[38px] h-[38px] rounded-full bg-white/6 grid place-items-center hover:bg-gold hover:text-white transition-colors"
+                >
+                  <Icon name="mail" size={17} />
+                </a>
+              )}
             </div>
           </div>
 

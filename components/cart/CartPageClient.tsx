@@ -26,7 +26,7 @@ export function CartPageClient() {
               <Icon name="cart" size={34} />
             </div>
             <h3 className="font-serif text-3xl font-medium mb-2">Your bag is empty</h3>
-            <p className="text-muted mb-6">Find the finish and size that's right for you.</p>
+            <p className="text-muted mb-6">Find the finish that&apos;s right for you.</p>
             <LinkButton href="/shop">Shop the ring</LinkButton>
           </div>
         ) : (

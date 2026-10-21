@@ -55,14 +55,9 @@ export const COMPARE = {
   ] as Array<[string, string, string, string]>,
 };
 
-export const REVIEWS: Array<{ name: string; loc: string; stars: number; text: string }> = [
-  { name: "Ananya R.", loc: "Bengaluru", stars: 5, text: "Finally a ring that talks about my skin, not just my steps. The cycle-phase tips are unreal." },
-  { name: "Meghna S.", loc: "Mumbai", stars: 5, text: "The free dermatologist consult after delivery sealed it for me. I felt looked-after, not sold to." },
-  { name: "Kritika P.", loc: "New Delhi", stars: 4, text: "Battery genuinely lasts almost a week, and there is no monthly fee hanging over me." },
-  { name: "Fatima K.", loc: "Hyderabad", stars: 5, text: "Watching my Glow score climb each week is weirdly motivating. The app is genuinely beautiful." },
-  { name: "Sneha V.", loc: "Pune", stars: 5, text: "Wore it through workouts, showers and dishes. It does not budge and it does not scream tech." },
-  { name: "Ritu M.", loc: "Jaipur", stars: 4, text: "COD made it easy to trust a new brand, and the sizing kit helped me get the fit exactly right." },
-];
+// The previous sample reviews were illustrative, not real customers, so they were removed.
+// Add real, consented reviews here once they exist, then set SITE.socialProofEnabled to true.
+export const REVIEWS: Array<{ name: string; loc: string; stars: number; text: string }> = [];
 
 export const FAQS: Array<{ q: string; a: string }> = [
   { q: "Which finger should I wear it on, and how do I find my size?", a: "Most people wear i do on the index, middle or ring finger of either hand. Use our size calculator to convert your finger circumference to a ring size in seconds, or use the sizing kit included with every ring: it ships first, you try the real widths at home and submit your size before we ship your ring." },

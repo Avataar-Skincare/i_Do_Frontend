@@ -69,7 +69,7 @@ export function ConfirmClient() {
         <div className="flex flex-col gap-3 mb-4">
           {order.items.map((item, i) => {
             const isKit = item.id === "kit";
-            const meta = isKit ? "Sizing kit (included)" : [item.finish, item.size && `US ${item.size}`].filter(Boolean).join(" · ");
+            const meta = isKit ? "Sizing kit (included)" : [item.finish, /^\d+$/.test(item.size) ? `US ${item.size}` : item.size].filter(Boolean).join(" · ");
             return (
               <div key={`${item.id}-${item.finish}-${item.size}-${i}`} className="flex items-center gap-3">
                 <div className="relative w-11 h-11 shrink-0 rounded-sm overflow-hidden border border-line bg-surface-2">
@@ -124,21 +124,6 @@ export function ConfirmClient() {
           </p>
         </div>
       </div>
-
-      {!order.userId && (
-        <div className="flex gap-3.5 items-start bg-surface border border-line rounded-lg p-5 mt-5">
-          <span className="w-10.5 h-10.5 rounded-xl bg-gold-tint text-gold-deep grid place-items-center shrink-0">
-            <Icon name="mail" size={19} />
-          </span>
-          <div>
-            <h4 className="text-base font-semibold mb-1">Check your inbox</h4>
-            <p className="text-[0.9rem] text-ink-2 m-0">
-              We've emailed {order.customer.email} a link to create your account — that's how you'll track this
-              order (and any future ones) going forward.
-            </p>
-          </div>
-        </div>
-      )}
 
       <div className="flex gap-3 flex-wrap mt-6">
         <LinkButton variant="dark" href={order.userId ? "/account?tab=track" : "/account"}>

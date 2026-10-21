@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { AuthForm } from "@/components/account/AuthForm";
 
-export function AuthModal({ onClose, lead }: { onClose: () => void; lead?: string }) {
+export function AuthModal({ onClose, onSuccess, lead }: { onClose: () => void; onSuccess?: () => void; lead?: string }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -35,7 +35,7 @@ export function AuthModal({ onClose, lead }: { onClose: () => void; lead?: strin
           <p className="text-center text-ink-2 text-[0.92rem] leading-relaxed mb-4">
             {lead ?? "Log in or create an account to continue — we'll pick up right where you left off."}
           </p>
-          <AuthForm />
+          <AuthForm onSuccess={onSuccess} />
         </div>
       </div>
     </div>

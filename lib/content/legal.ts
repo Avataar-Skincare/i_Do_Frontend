@@ -27,7 +27,7 @@ export const LEGAL_DOCS: Record<string, { title: string; blocks: Block[] }> = {
       },
       { h2: "Your rights" },
       {
-        p: `You may access, correct, export or delete your personal data, and withdraw consent, at any time by writing to ${SITE.email}. You may also nominate a person to exercise these rights on your behalf.`,
+        p: `You may access, correct, export or delete your personal data, and withdraw consent, at any time ${SITE.email ? `by writing to ${SITE.email}` : "through the contact form on our Support page"}. You may also nominate a person to exercise these rights on your behalf.`,
       },
       { h2: "Retention" },
       {
@@ -35,7 +35,7 @@ export const LEGAL_DOCS: Record<string, { title: string; blocks: Block[] }> = {
       },
       { h2: "Grievance officer" },
       {
-        p: `For any privacy concern, contact our Grievance Officer at ${SITE.email} or ${SITE.address}.`,
+        p: `For any privacy concern, contact our Grievance Officer ${SITE.email ? `at ${SITE.email}` : "through the contact form on our Support page"}${SITE.address ? `, or write to ${SITE.address}` : ""}.`,
       },
     ],
   },
@@ -86,7 +86,7 @@ export const LEGAL_DOCS: Record<string, { title: string; blocks: Block[] }> = {
       { p: "Once dispatched, you will receive tracking details by SMS and email, and you can follow your order any time from Track order or your account." },
       { h2: "Delays" },
       {
-        p: `Deliveries may occasionally be delayed by weather, regional restrictions or courier constraints. If your order is significantly delayed, write to ${SITE.email} and we will help.`,
+        p: `Deliveries may occasionally be delayed by weather, regional restrictions or courier constraints. If your order is significantly delayed, ${SITE.email ? `write to ${SITE.email}` : "use the contact form on our Support page"} and we will help.`,
       },
     ],
   },
@@ -121,7 +121,7 @@ export const LEGAL_DOCS: Record<string, { title: string; blocks: Block[] }> = {
         p: "A sizing kit is included with your ring and ships first. Use the sizers at home, then submit your size from your account. Once submitted, your size is locked and cannot be changed, so please confirm it carefully. There is no size exchange.",
       },
       { h2: "How to reach us" },
-      { p: `Email ${SITE.email} or WhatsApp us and our team will take it from there.` },
+      { p: `${SITE.email ? `Email ${SITE.email}` : "Use the contact form on our Support page"}${SITE.waNumber ? " or WhatsApp us" : ""} and our team will take it from there.` },
     ],
   },
 };

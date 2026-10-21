@@ -22,7 +22,7 @@ function inputClass(hasError: boolean) {
  * verifying the code logs in an existing account or creates a new one,
  * whichever applies.
  */
-export function AuthForm() {
+export function AuthForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const { sendEmailOtp, verifyEmailOtp, sendPhoneOtp, verifyPhoneOtp } = useAuth();
 
   const [method, setMethod] = useState<Method>("email");
@@ -94,6 +94,7 @@ export function AuthForm() {
       const name = fullName.trim() || undefined;
       if (method === "email") await verifyEmailOtp(identifier, code, name);
       else await verifyPhoneOtp(identifier, code, name);
+      onSuccess?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "That code is invalid or has expired.");
     } finally {
