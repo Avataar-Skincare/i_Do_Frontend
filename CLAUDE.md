@@ -101,19 +101,25 @@ different account types:
   shipment tracking (e.g. Delhivery) exists, this needs to be replaced with the real
   `order.status`, not patched further.
 
-## Sizing: bundled into the ring's add-to-bag flow, not a separate product
+## Sizing: the kit is included, the customer never picks a size at order time
 
-Changed 2026-10-13 (matching a competitor's — Luna's — product-page UX). The
-standalone "Sizing" nav tab is gone (`lib/content/site.ts`'s `NAV`); `/sizing` itself
-still exists (linked from the footer and `/ring`) but is no longer the primary path.
-On `/shop`, `components/shop/ProductInfo.tsx`'s size section defaults to a selected
-**"Free Sizing Kit"** card (`sizeMode: "kit" | "known"`, default `"kit"`) — "Add to
-bag" works immediately with no numeric size chosen, storing `size: "Free Sizing Kit"`
-on the cart/order line instead of a US size. Picking "I know my size" reveals the
-original size grid instead, same as before. `lib/content/shop.ts`'s
-`SIZING_KIT_IMAGE` (`ring_4.webp`, a packaging shot) is the dedicated image for this
-card and for `/sizing`'s own kit button — deliberately not the ring's own product
-photo, so the kit reads as its own distinct thing in the cart.
+Confirmed with the manager 15–16 Oct 2026 (see the `i do Website Decisions` doc). Every
+order starts with the sizing kit, which ships first; the customer submits their size from
+their account after the kit arrives, then the ring ships. `/shop`
+(`components/shop/ProductInfo.tsx`) shows a "Sizing kit included with your ring" card and
+the sizes currently available (display only, nothing to select). Add to bag stores
+`size: "Sizing kit included"`. There is no "I know my size" path and no standalone kit
+product; `/sizing` is only the size calculator. A submitted size is final (the account page
+must ask "This can't be changed later. Confirm?" and send `confirmed: true`). Wording is
+"sizing kit included with your ring", never "free sizing kit".
+`lib/content/shop.ts`'s `SIZING_KIT_IMAGE` (`ring_4.webp`) is the kit's image.
+
+Other confirmed rules reflected in the copy: COD fee ₹100 (never refunded), full COD
+payment at sizing-kit delivery, delivery 4–7 working days, no refund on a delivered ring,
+replacement only for damaged or wrong items reported within 7 days with a box-opening
+video and photos. `SITE.socialProofEnabled` (default `false`) hides the unconfirmed
+rating, customer count, cities, Shark Tank line and sample reviews until the business
+confirms they are real.
 
 ## Conventions
 

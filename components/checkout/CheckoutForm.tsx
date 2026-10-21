@@ -280,7 +280,7 @@ export function CheckoutForm() {
               title="Cash on Delivery"
               badge={`+${formatINR(SITE.codFeeInPaise)}`}
               badgeTone="gold"
-              body="Pay in cash when your ring arrives. A small ₹50 handling fee applies."
+              body={`Pay in full in cash when your sizing kit is delivered. A ${formatINR(SITE.codFeeInPaise)} handling fee applies, and it is never refunded. We confirm every COD order on WhatsApp.`}
             />
           </div>
           <p className="flex gap-2.5 items-start text-[0.82rem] text-muted mt-4">

@@ -25,8 +25,8 @@ export default function Home() {
       <HowItWorks />
       <RingSpecs />
       <ComparisonTable />
-      <BackedByAvataar />
-      <Testimonials />
+      {SITE.socialProofEnabled && <BackedByAvataar />}
+      {SITE.socialProofEnabled && <Testimonials />}
       <FAQSection />
       <CTABand
         eyebrow="Say it to yourself"

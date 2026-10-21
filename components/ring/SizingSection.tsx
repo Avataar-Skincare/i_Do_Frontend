@@ -40,8 +40,8 @@ export function SizingSection() {
         <LinkButton href="/sizing" variant="dark">
           <Icon name="search" size={16} /> Size calculator
         </LinkButton>
-        <LinkButton href="/sizing" variant="ghost">
-          Order a free sizing kit
+        <LinkButton href="/shop" variant="ghost">
+          Sizing kit included with your ring
         </LinkButton>
       </div>
     </Section>

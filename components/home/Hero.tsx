@@ -48,7 +48,7 @@ export function Hero() {
               <Icon name="check" size={15} className="text-gold" /> Free consults included
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Icon name="check" size={15} className="text-gold" /> 3–7 day delivery · COD
+              <Icon name="check" size={15} className="text-gold" /> 4–7 day delivery · COD
             </span>
           </div>
         </div>

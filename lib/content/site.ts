@@ -10,7 +10,7 @@ export const SITE = {
   legalName: "Misya Beauty Tech Pvt. Ltd.",
   priceInPaise: 1499900,
   mrpInPaise: 1999900,
-  codFeeInPaise: 5000,
+  codFeeInPaise: 10000, // confirmed 15 Oct: ₹100 COD handling fee, never refunded
   email: "care@idobyavataar.com", // placeholder
   phone: "+91 90000 00000", // placeholder
   waNumber: "919000000000", // placeholder
@@ -19,6 +19,9 @@ export const SITE = {
   cin: "[CIN]", // placeholder
   domain: "idowellness.ai", // confirmed 2026-09-24 — registered domain
   avataarUrl: "https://avataarskin.com", // placeholder cross-link
+  // Unconfirmed figures. Keep hidden until the business confirms they are real
+  // (LLD §12: social_proof_enabled defaults to off).
+  socialProofEnabled: false,
   rating: 4.6,
   customers: "30,000+",
   cities: "18+",

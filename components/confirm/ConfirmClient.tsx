@@ -69,7 +69,7 @@ export function ConfirmClient() {
         <div className="flex flex-col gap-3 mb-4">
           {order.items.map((item, i) => {
             const isKit = item.id === "kit";
-            const meta = isKit ? "Free sizing kit" : [item.finish, item.size && `US ${item.size}`].filter(Boolean).join(" · ");
+            const meta = isKit ? "Sizing kit (included)" : [item.finish, item.size && `US ${item.size}`].filter(Boolean).join(" · ");
             return (
               <div key={`${item.id}-${item.finish}-${item.size}-${i}`} className="flex items-center gap-3">
                 <div className="relative w-11 h-11 shrink-0 rounded-sm overflow-hidden border border-line bg-surface-2">
@@ -109,7 +109,7 @@ export function ConfirmClient() {
         </div>
 
         <p className="flex gap-2 items-center text-[0.85rem] text-muted mt-4 mb-0">
-          <Icon name="truck" size={15} /> Estimated delivery in 3–7 working days to {order.address.city || "your address"}.
+          <Icon name="truck" size={15} /> Estimated delivery in 4–7 working days to {order.address.city || "your address"}.
         </p>
       </div>
 

@@ -3,13 +3,14 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { SITE } from "@/lib/content/site";
 
 export function TrustStrip() {
-  const items: Array<{ icon: IconName; text: ReactNode }> = [
-    { icon: "award", text: <>As seen on <strong className="text-ink font-semibold">Shark Tank India</strong></> },
-    { icon: "star", text: <><strong className="text-ink font-semibold">{SITE.rating}★</strong> from {SITE.customers} women</> },
+  const allItems: Array<{ icon: IconName; text: ReactNode; proof?: boolean }> = [
+    { icon: "award", proof: true, text: <>As seen on <strong className="text-ink font-semibold">Shark Tank India</strong></> },
+    { icon: "star", proof: true, text: <><strong className="text-ink font-semibold">{SITE.rating}★</strong> from {SITE.customers} women</> },
     { icon: "heart", text: <><strong className="text-ink font-semibold">No subscription</strong>, ever</> },
     { icon: "lock", text: <><strong className="text-ink font-semibold">DPDP</strong> · data on-device</> },
     { icon: "shield", text: <><strong className="text-ink font-semibold">12-month</strong> warranty</> },
   ];
+  const items = allItems.filter((item) => SITE.socialProofEnabled || !item.proof);
 
   return (
     <div className="border-y border-line bg-bg-2">

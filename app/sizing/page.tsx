@@ -8,7 +8,7 @@ import { SITE } from "@/lib/content/site";
 export const metadata: Metadata = {
   title: `Sizing — ${SITE.brand} by ${SITE.parent}`,
   description:
-    "Measure the finger you'll wear it on, pop the number in below, and we'll match you to a US size. Prefer to try first? Order a free sizing kit and fit the real widths at home.",
+    "Measure the finger you'll wear it on, pop the number in below, and we'll match you to a US size. Prefer to try first? A sizing kit is included with every ring and ships first, so you can fit the real widths at home.",
 };
 
 export default function SizingPage() {
@@ -17,7 +17,7 @@ export default function SizingPage() {
       <PageHead
         crumbs={[{ label: "Home", href: "/" }, { label: "Sizing" }]}
         title="Find your ring size in seconds"
-        lede="Measure the finger you'll wear it on, pop the number in below, and we'll match you to a US size. Prefer to try first? Order a free sizing kit and fit the real widths at home."
+        lede="Measure the finger you'll wear it on, pop the number in below, and we'll match you to a US size. Prefer to try first? A sizing kit is included with every ring and ships first, so you can fit the real widths at home."
       />
       <Container>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-9 items-start mt-8">
