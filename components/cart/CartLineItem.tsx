@@ -22,7 +22,7 @@ export function CartLineItem({ item }: { item: CartItem }) {
             <span className="text-[0.82rem] text-muted">One ring per order</span>
             <button
               onClick={() => removeItem(item.id, item.finish, item.size)}
-              className="inline-flex items-center gap-1.5 text-[0.82rem] text-muted hover:text-[color:var(--color-error)]"
+              className="inline-flex items-center gap-1.5 min-h-11 px-1 text-[0.82rem] text-muted hover:text-[color:var(--color-error)]"
             >
               <Icon name="close" size={13} /> Remove
             </button>

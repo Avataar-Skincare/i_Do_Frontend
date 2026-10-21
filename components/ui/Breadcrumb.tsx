@@ -6,7 +6,7 @@ export function Breadcrumb({ items }: { items: Array<{ label: string; href?: str
       {items.map((item, i) => (
         <span key={item.label}>
           {item.href ? (
-            <Link href={item.href} className="hover:text-gold-deep">
+            <Link href={item.href} className="inline-block py-3.5 -my-3.5 px-2.5 -mx-2.5 hover:text-gold-deep">
               {item.label}
             </Link>
           ) : (

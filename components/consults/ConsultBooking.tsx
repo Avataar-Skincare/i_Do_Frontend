@@ -450,7 +450,7 @@ export function ConsultBooking() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Full name"
-                className="w-full bg-bg-2 border border-line-2 rounded-sm py-3.5 px-4 text-[0.98rem] focus:outline-none focus:border-gold"
+                className="w-full bg-bg-2 border border-line-2 rounded-sm py-3.5 px-4 text-base focus:outline-none focus:border-gold"
               />
             </div>
             <div>
@@ -460,7 +460,7 @@ export function ConsultBooking() {
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                 placeholder="10-digit mobile"
                 inputMode="numeric"
-                className="w-full bg-bg-2 border border-line-2 rounded-sm py-3.5 px-4 text-[0.98rem] focus:outline-none focus:border-gold"
+                className="w-full bg-bg-2 border border-line-2 rounded-sm py-3.5 px-4 text-base focus:outline-none focus:border-gold"
               />
               {phone && phone.length < 10 && (
                 <p className="text-[0.78rem] text-error mt-1.5">Enter a 10-digit mobile number</p>
@@ -473,7 +473,7 @@ export function ConsultBooking() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
-                className="w-full bg-bg-2 border border-line-2 rounded-sm py-3.5 px-4 text-[0.98rem] focus:outline-none focus:border-gold"
+                className="w-full bg-bg-2 border border-line-2 rounded-sm py-3.5 px-4 text-base focus:outline-none focus:border-gold"
               />
               {email && !isEmailValid && <p className="text-[0.78rem] text-error mt-1.5">Enter a valid email</p>}
             </div>
@@ -487,7 +487,7 @@ export function ConsultBooking() {
             onChange={(e) => setConcern(e.target.value)}
             placeholder="e.g. breakouts before my period, dullness, hair fall…"
             rows={3}
-            className="w-full bg-bg-2 border border-line-2 rounded-sm py-3.5 px-4 text-[0.98rem] resize-y mb-6 focus:outline-none focus:border-gold"
+            className="w-full bg-bg-2 border border-line-2 rounded-sm py-3.5 px-4 text-base resize-y mb-6 focus:outline-none focus:border-gold"
           />
 
           {submitError && <p className="text-[0.85rem] text-error mb-3.5">{submitError}</p>}

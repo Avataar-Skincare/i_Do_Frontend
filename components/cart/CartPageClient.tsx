@@ -35,7 +35,7 @@ export function CartPageClient() {
               {cart.map((item) => (
                 <CartLineItem key={`${item.id}-${item.finish}-${item.size}`} item={item} />
               ))}
-              <Link href="/shop" className="inline-flex items-center gap-1.5 text-gold-deep font-semibold mt-5">
+              <Link href="/shop" className="inline-flex items-center gap-1.5 min-h-11 text-gold-deep font-semibold mt-3">
                 <Icon name="chevron" size={14} className="rotate-180" /> Continue shopping
               </Link>
             </div>

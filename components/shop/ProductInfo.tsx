@@ -44,7 +44,7 @@ export function ProductInfo() {
             <span>· {SITE.customers} women on the Avataar platform ·</span>
           </>
         )}
-        <Link href="/support" className="text-gold-deep font-semibold">
+        <Link href="/support" className="inline-flex items-center py-3 -my-3 text-gold-deep font-semibold">
           Ask us anything
         </Link>
       </div>

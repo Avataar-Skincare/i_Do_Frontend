@@ -239,12 +239,12 @@ export function CheckoutForm() {
             </Field>
           </div>
 
-          <label className="flex items-center gap-2.5 text-[0.9rem] text-ink-2 mt-1 cursor-pointer select-none">
+          <label className="flex items-center gap-2.5 text-[0.9rem] text-ink-2 mt-1 min-h-11 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={wantGstBill}
               onChange={(e) => setWantGstBill(e.target.checked)}
-              className="w-4.5 h-4.5 accent-gold"
+              className="w-5 h-5 accent-gold"
             />
             I need a GST invoice for this order
           </label>
@@ -330,14 +330,14 @@ export function CheckoutForm() {
         <h3 className="font-serif text-2xl font-medium mb-5">Your order</h3>
         <div className="flex flex-col gap-3.5 mb-4 pb-4 border-b border-line">
           {cart.map((item) => {
-            const meta = [item.finish, item.size && `US ${item.size}`, `Qty ${item.qty}`].filter(Boolean).join(" · ");
+            const meta = [item.finish, /^\d+$/.test(item.size) ? `US ${item.size}` : item.size].filter(Boolean).join(" · ");
             return (
               <div key={`${item.id}-${item.finish}-${item.size}`} className="flex gap-3 items-center">
                 <div className="relative w-13 h-13 shrink-0 rounded-lg overflow-hidden border border-line bg-surface-2">
                   <Image src={item.image} alt={item.name} fill sizes="52px" className="object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[0.9rem] font-medium truncate">{item.name}</div>
+                  <div className="text-[0.9rem] font-medium leading-snug">{item.name}</div>
                   <div className="text-[0.78rem] text-muted">{meta}</div>
                 </div>
                 <span className="font-serif font-medium shrink-0">{formatINR(item.price * item.qty)}</span>
@@ -400,7 +400,7 @@ export function CheckoutForm() {
 
 function inputClass(hasError: boolean) {
   return [
-    "w-full bg-bg-2 border-[1.5px] rounded-sm py-3.5 px-4 text-[0.98rem] focus:outline-none focus:border-gold",
+    "w-full bg-bg-2 border-[1.5px] rounded-sm py-3.5 px-4 text-base focus:outline-none focus:border-gold",
     hasError ? "border-[color:var(--color-error)]" : "border-line-2",
   ].join(" ");
 }

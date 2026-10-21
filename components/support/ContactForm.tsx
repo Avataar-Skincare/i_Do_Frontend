@@ -19,7 +19,7 @@ function validate(fields: Fields): Errors {
 
 function inputClass(hasError: boolean) {
   return [
-    "w-full bg-bg-2 border-[1.5px] rounded-sm py-3.5 px-4 text-[0.98rem] focus:outline-none focus:border-gold",
+    "w-full bg-bg-2 border-[1.5px] rounded-sm py-3.5 px-4 text-base focus:outline-none focus:border-gold",
     hasError ? "border-[color:var(--color-error)]" : "border-line-2",
   ].join(" ");
 }

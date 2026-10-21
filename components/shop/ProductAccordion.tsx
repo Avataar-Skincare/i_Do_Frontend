@@ -5,7 +5,7 @@ import { WHATS_IN_THE_BOX, SPECIFICATIONS, SHIPPING_TEXT, WARRANTY_TEXT } from "
 function AccordionItem({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: ReactNode }) {
   return (
     <details open={defaultOpen} className="border-t border-line py-5 group">
-      <summary className="list-none cursor-pointer flex items-center justify-between font-semibold text-base marker:content-none [&::-webkit-details-marker]:hidden">
+      <summary className="list-none cursor-pointer min-h-11 flex items-center justify-between font-semibold text-base marker:content-none [&::-webkit-details-marker]:hidden">
         {title}
         <span className="text-xl font-normal text-gold-deep group-open:hidden">+</span>
         <span className="text-xl font-normal text-gold-deep hidden group-open:inline">–</span>
@@ -35,7 +35,7 @@ export function ProductAccordion() {
             </div>
           ))}
         </div>
-        <Link href="/ring" className="inline-block mt-4 font-semibold text-gold-deep underline text-[0.94rem]">
+        <Link href="/ring" className="inline-block mt-1 py-3 font-semibold text-gold-deep underline text-[0.94rem]">
           See full technology page
         </Link>
       </AccordionItem>
@@ -47,7 +47,7 @@ export function ProductAccordion() {
       <AccordionItem title="Warranty & returns">
         <p className="text-ink-2 text-[0.94rem] m-0">
           {WARRANTY_TEXT}{" "}
-          <Link href="/legal/returns" className="font-semibold text-gold-deep underline">
+          <Link href="/legal/returns" className="inline-block py-3 -my-3 font-semibold text-gold-deep underline">
             Returns &amp; Warranty
           </Link>
           .
