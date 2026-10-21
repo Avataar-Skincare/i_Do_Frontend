@@ -35,7 +35,7 @@ export function Header() {
         ].join(" ")}
       >
         <div className="max-w-content mx-auto px-6 flex items-center gap-5 h-[72px]">
-          <Link href="/" className="flex items-center shrink-0" aria-label={`${SITE.brand} by ${SITE.parent} — home`}>
+          <Link href="/" className="flex items-center min-h-11 shrink-0" aria-label={`${SITE.brand} by ${SITE.parent} — home`}>
             <Logo height={38} />
           </Link>
 
@@ -55,14 +55,14 @@ export function Header() {
             <Link
               href="/account"
               aria-label="Account"
-              className="w-[42px] h-[42px] rounded-full inline-flex items-center justify-center text-ink hover:bg-bg-3 hover:text-gold-deep transition-colors"
+              className="w-11 h-11 rounded-full inline-flex items-center justify-center text-ink hover:bg-bg-3 hover:text-gold-deep transition-colors"
             >
               <Icon name="user" size={21} />
             </Link>
             <Link
               href="/cart"
               aria-label="Bag"
-              className="relative w-[42px] h-[42px] rounded-full inline-flex items-center justify-center text-ink hover:bg-bg-3 hover:text-gold-deep transition-colors"
+              className="relative w-11 h-11 rounded-full inline-flex items-center justify-center text-ink hover:bg-bg-3 hover:text-gold-deep transition-colors"
             >
               <Icon name="cart" size={21} />
               {cartCount > 0 && (
@@ -80,7 +80,7 @@ export function Header() {
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Menu"
-              className="md:hidden w-[42px] h-[42px] rounded-full inline-flex items-center justify-center text-ink hover:bg-bg-3 hover:text-gold-deep transition-colors"
+              className="md:hidden w-11 h-11 rounded-full inline-flex items-center justify-center text-ink hover:bg-bg-3 hover:text-gold-deep transition-colors"
             >
               <Icon name="menu" size={21} />
             </button>
@@ -107,7 +107,7 @@ export function Header() {
           <button
             onClick={() => setMenuOpen(false)}
             aria-label="Close"
-            className="w-[42px] h-[42px] rounded-full inline-flex items-center justify-center text-ink hover:bg-surface"
+            className="w-11 h-11 rounded-full inline-flex items-center justify-center text-ink hover:bg-surface"
           >
             <Icon name="close" size={21} />
           </button>
@@ -138,12 +138,16 @@ export function Header() {
           >
             Shop {SITE.brand}
           </Link>
-          <span className="text-sm text-muted flex items-center gap-2">
-            <Icon name="phone" size={14} className="shrink-0" /> {SITE.phone}
-          </span>
-          <a className="text-sm text-gold-deep" href={`mailto:${SITE.email}`}>
-            {SITE.email}
-          </a>
+          {SITE.phone && (
+            <span className="text-sm text-muted flex items-center gap-2">
+              <Icon name="phone" size={14} className="shrink-0" /> {SITE.phone}
+            </span>
+          )}
+          {SITE.email && (
+            <a className="text-sm text-gold-deep" href={`mailto:${SITE.email}`}>
+              {SITE.email}
+            </a>
+          )}
         </div>
       </aside>
     </>

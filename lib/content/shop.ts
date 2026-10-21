@@ -22,14 +22,14 @@ export const GALLERY: Array<{ src: string; alt: string }> = [
   { src: `${CDN}/ring_5.webp`, alt: "i do smart ring, gold finish, resting on its box" },
 ];
 
-/** The free sizing kit's own cart-line image — distinct from the ring itself (GALLERY[0]). */
+/** The sizing kit's own image — distinct from the ring itself (GALLERY[0]). */
 export const SIZING_KIT_IMAGE = `${CDN}/ring_4.webp`;
 
 export const HIGHLIGHTS: Array<{ icon: IconName; text: string }> = [
   { icon: "gem", text: "2.9g titanium" },
   { icon: "heart", text: "No subscription" },
   { icon: "face", text: "2 free expert consults" },
-  { icon: "truck", text: "Free 3–7 day delivery" },
+  { icon: "truck", text: "Free 4–7 day delivery" },
 ];
 
 export const CONSULT_CALLOUT = {
@@ -56,10 +56,10 @@ export const SPECIFICATIONS: Array<[string, string]> = [
 ];
 
 export const SHIPPING_TEXT =
-  "Prepaid orders ship free and typically arrive in 3–7 working days. Cash on Delivery is available for a ₹50 handling fee. You'll get tracking by SMS and email.";
+  "Your sizing kit ships first, then your ring once you submit your size. Prepaid orders ship free and typically arrive in 4–7 working days. Cash on Delivery is available for a ₹100 handling fee, paid in full when your sizing kit is delivered. You'll get tracking by SMS and email.";
 
 export const WARRANTY_TEXT =
-  "Covered by a 12-month warranty against manufacturing defects. Because it's a personal skin-contact device, change-of-mind returns aren't available once worn — see";
+  "Covered by a 12-month warranty against manufacturing defects. A delivered ring can't be returned for a refund, and there are no size exchanges, but a damaged or wrong item is replaced when reported within 7 days — see";
 
 export const WHY_I_DO: Array<{ icon: IconName; tone: "gold" | "sage" | "plum"; title: string; body: string }> = [
   { icon: "spark", tone: "gold", title: "Skin-first, always", body: "Eight scores built around your skin — not a step count with skincare bolted on." },

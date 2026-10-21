@@ -1,6 +1,5 @@
 import type { ConsultTypeId } from "@/lib/content/consults";
-import { apiGet, apiPatch, apiPost, withAuth } from "@/lib/api";
-import { getAuthToken } from "@/lib/auth-context";
+import { apiGet, apiPatch, apiPost } from "@/lib/api";
 
 export type ConsultStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
 
@@ -32,16 +31,16 @@ export type StoredConsult = {
 export function saveConsult(
   input: Omit<StoredConsult, "id" | "userId" | "status" | "doctorName" | "meetingLink" | "createdAt">,
 ): Promise<StoredConsult> {
-  return apiPost<StoredConsult>("/consults", input, withAuth(getAuthToken()));
+  return apiPost<StoredConsult>("/consults", input);
 }
 
 /** Requires a logged-in user — call only when `useAuth().user` is set. */
 export function getMyConsults(): Promise<StoredConsult[]> {
-  return apiGet<StoredConsult[]>("/consults/mine", withAuth(getAuthToken()));
+  return apiGet<StoredConsult[]>("/consults/mine");
 }
 
 export function cancelConsult(id: string): Promise<StoredConsult> {
-  return apiPatch<StoredConsult>(`/consults/${id}/cancel`, {}, withAuth(getAuthToken()));
+  return apiPatch<StoredConsult>(`/consults/${id}/cancel`, {});
 }
 
 /**
@@ -51,5 +50,5 @@ export function cancelConsult(id: string): Promise<StoredConsult> {
  * re-confirms it.
  */
 export function rescheduleConsult(id: string, dayLabel: string, timeSlot: string): Promise<StoredConsult> {
-  return apiPatch<StoredConsult>(`/consults/${id}/reschedule`, { dayLabel, timeSlot }, withAuth(getAuthToken()));
+  return apiPatch<StoredConsult>(`/consults/${id}/reschedule`, { dayLabel, timeSlot });
 }

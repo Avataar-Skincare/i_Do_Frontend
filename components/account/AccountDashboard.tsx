@@ -10,7 +10,6 @@ import { OverviewTab } from "./OverviewTab";
 import { OrdersTab } from "./OrdersTab";
 import { ConsultsTab } from "./ConsultsTab";
 import { TrackTab } from "./TrackTab";
-import { VerifyEmailBanner } from "./VerifyEmailBanner";
 
 type Tab = "overview" | "orders" | "consults" | "track";
 
@@ -41,12 +40,16 @@ export function AccountDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Swap one order for its fresh copy (e.g. after the size is submitted) without refetching the lot.
+  function replaceOrder(updated: Order) {
+    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+  }
+
   if (!user) return null;
 
   return (
     <div>
       <h1 className="font-serif font-medium text-3xl mb-6">Your account</h1>
-      <VerifyEmailBanner />
       <div className="grid grid-cols-1 lg:grid-cols-[230px_1fr] gap-8">
         <nav className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible lg:sticky lg:top-[90px] lg:self-start">
           {NAV.map((item) => (
@@ -74,8 +77,8 @@ export function AccountDashboard() {
             <div className="text-center py-16 text-muted">Loading…</div>
           ) : (
             <>
-              {tab === "overview" && <OverviewTab user={user} orders={orders} consults={consults} />}
-              {tab === "orders" && <OrdersTab orders={orders} />}
+              {tab === "overview" && <OverviewTab user={user} orders={orders} consults={consults} onOrderChange={replaceOrder} />}
+              {tab === "orders" && <OrdersTab orders={orders} onOrderChange={replaceOrder} />}
               {tab === "consults" && <ConsultsTab consults={consults} />}
               {tab === "track" && <TrackTab orders={orders} />}
             </>

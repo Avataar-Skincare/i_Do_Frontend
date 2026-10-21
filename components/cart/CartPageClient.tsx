@@ -26,7 +26,7 @@ export function CartPageClient() {
               <Icon name="cart" size={34} />
             </div>
             <h3 className="font-serif text-3xl font-medium mb-2">Your bag is empty</h3>
-            <p className="text-muted mb-6">Find the finish and size that's right for you.</p>
+            <p className="text-muted mb-6">Find the finish that&apos;s right for you.</p>
             <LinkButton href="/shop">Shop the ring</LinkButton>
           </div>
         ) : (
@@ -35,7 +35,7 @@ export function CartPageClient() {
               {cart.map((item) => (
                 <CartLineItem key={`${item.id}-${item.finish}-${item.size}`} item={item} />
               ))}
-              <Link href="/shop" className="inline-flex items-center gap-1.5 text-gold-deep font-semibold mt-5">
+              <Link href="/shop" className="inline-flex items-center gap-1.5 min-h-11 text-gold-deep font-semibold mt-3">
                 <Icon name="chevron" size={14} className="rotate-180" /> Continue shopping
               </Link>
             </div>

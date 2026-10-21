@@ -10,15 +10,22 @@ export const SITE = {
   legalName: "Misya Beauty Tech Pvt. Ltd.",
   priceInPaise: 1499900,
   mrpInPaise: 1999900,
-  codFeeInPaise: 5000,
-  email: "care@idobyavataar.com", // placeholder
-  phone: "+91 90000 00000", // placeholder
-  waNumber: "919000000000", // placeholder
-  address: "Misya Beauty Tech Pvt. Ltd., [Registered address], India", // placeholder
-  gstin: "[GSTIN]", // placeholder
-  cin: "[CIN]", // placeholder
+  codFeeInPaise: 10000, // confirmed 15 Oct: ₹100 COD handling fee, never refunded
+  // Business facts still owed by the business (Website Decisions → "Facts we need", due 22 Oct).
+  // null = not confirmed: the UI hides that contact instead of showing a fake one.
+  // Fill these in with the real values (waNumber is digits only, e.g. "919876543210").
+  email: null as string | null,
+  phone: null as string | null,
+  waNumber: null as string | null,
+  address: null as string | null,
+  gstin: null as string | null,
+  cin: null as string | null,
   domain: "idowellness.ai", // confirmed 2026-09-24 — registered domain
   avataarUrl: "https://avataarskin.com", // placeholder cross-link
+  // Unconfirmed figures. Keep hidden until the business confirms they are real
+  // (LLD §12: social_proof_enabled defaults to off).
+  supportHours: "Monday to Saturday, 10:00 to 18:00",
+  socialProofEnabled: false,
   rating: 4.6,
   customers: "30,000+",
   cities: "18+",

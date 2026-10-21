@@ -1,20 +1,13 @@
-import { apiPost, withAuth } from "@/lib/api";
-import { getAuthToken } from "@/lib/auth-context";
+import type { PaymentProof, RazorpayCheckout } from "@/lib/orders-storage";
 
 const CHECKOUT_SCRIPT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
 
-export type RazorpayOrder = { id: string; amount: number; currency: string; keyId: string };
-
-/** `amount` is in paise — backend creates the real order on Razorpay's side before the widget opens. */
-export function createRazorpayOrder(amount: number): Promise<RazorpayOrder> {
-  return apiPost<RazorpayOrder>("/orders/razorpay-order", { amount }, withAuth(getAuthToken()));
+/** Thrown when the customer closes the widget without paying. Show "Payment not completed. Try again." */
+export class PaymentNotCompletedError extends Error {
+  constructor() {
+    super("Payment not completed. Try again.");
+  }
 }
-
-export type RazorpayPaymentResult = {
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
-};
 
 type RazorpaySuccessResponse = {
   razorpay_order_id: string;
@@ -62,11 +55,11 @@ function loadCheckoutScript(): Promise<void> {
   return scriptPromise;
 }
 
-/** Rejects (doesn't resolve) if the customer closes the widget without paying — same as a cancelled payment. */
+/** Rejects with PaymentNotCompletedError if the customer closes the widget without paying. */
 export async function payWithRazorpay(
-  order: RazorpayOrder,
+  order: RazorpayCheckout,
   opts: { name: string; email: string; phone: string }
-): Promise<RazorpayPaymentResult> {
+): Promise<PaymentProof> {
   await loadCheckoutScript();
 
   return new Promise((resolve, reject) => {
@@ -91,7 +84,7 @@ export async function payWithRazorpay(
         });
       },
       modal: {
-        ondismiss: () => reject(new Error("Payment cancelled.")),
+        ondismiss: () => reject(new PaymentNotCompletedError()),
       },
     });
     razorpay.open();

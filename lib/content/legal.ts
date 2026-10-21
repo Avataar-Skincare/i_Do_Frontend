@@ -27,7 +27,7 @@ export const LEGAL_DOCS: Record<string, { title: string; blocks: Block[] }> = {
       },
       { h2: "Your rights" },
       {
-        p: `You may access, correct, export or delete your personal data, and withdraw consent, at any time by writing to ${SITE.email}. You may also nominate a person to exercise these rights on your behalf.`,
+        p: `You may access, correct, export or delete your personal data, and withdraw consent, at any time ${SITE.email ? `by writing to ${SITE.email}` : "through the contact form on our Support page"}. You may also nominate a person to exercise these rights on your behalf.`,
       },
       { h2: "Retention" },
       {
@@ -35,7 +35,7 @@ export const LEGAL_DOCS: Record<string, { title: string; blocks: Block[] }> = {
       },
       { h2: "Grievance officer" },
       {
-        p: `For any privacy concern, contact our Grievance Officer at ${SITE.email} or ${SITE.address}.`,
+        p: `For any privacy concern, contact our Grievance Officer ${SITE.email ? `at ${SITE.email}` : "through the contact form on our Support page"}${SITE.address ? `, or write to ${SITE.address}` : ""}.`,
       },
     ],
   },
@@ -77,15 +77,16 @@ export const LEGAL_DOCS: Record<string, { title: string; blocks: Block[] }> = {
       { h2: "Charges & timelines" },
       {
         ul: [
-          "Prepaid orders — free shipping, typically delivered in 3–7 working days.",
-          `Cash on Delivery (COD) — available for a ₹50 handling fee, with the same 3–7 working-day timeline.`,
+          "Your sizing kit ships first. Your ring ships after you submit your size from your account.",
+          "Prepaid orders — free shipping, typically delivered in 4–7 working days.",
+          `Cash on Delivery (COD) — available for a ₹100 handling fee, paid in full when your sizing kit is delivered, with the same 4–7 working-day timeline. The ₹100 fee is never refunded.`,
         ],
       },
       { h2: "Tracking" },
       { p: "Once dispatched, you will receive tracking details by SMS and email, and you can follow your order any time from Track order or your account." },
       { h2: "Delays" },
       {
-        p: `Deliveries may occasionally be delayed by weather, regional restrictions or courier constraints. If your order is significantly delayed, write to ${SITE.email} and we will help.`,
+        p: `Deliveries may occasionally be delayed by weather, regional restrictions or courier constraints. If your order is significantly delayed, ${SITE.email ? `write to ${SITE.email}` : "use the contact form on our Support page"} and we will help.`,
       },
     ],
   },
@@ -98,18 +99,33 @@ export const LEGAL_DOCS: Record<string, { title: string; blocks: Block[] }> = {
       },
       { h2: "Damaged or wrong item" },
       {
-        p: "If your order arrives damaged, defective or incorrect, contact us within 7 days of delivery with your order ID and a photo, and we will arrange a replacement.",
+        p: "If your order arrives damaged, defective or incorrect, report it from your account within 7 days of delivery with a box-opening video and photos, and we will arrange a replacement. Damaged or wrong items are replaced, not refunded.",
       },
       { h2: "Change-of-mind returns" },
       {
-        p: "Because the ring is a personal, skin-contact device, we are unable to accept change-of-mind returns once a ring has been worn or its hygiene seal is broken. Unopened rings may be returned within 7 days of delivery, subject to inspection.",
+        p: "Because the ring is a personal, skin-contact device, a delivered ring cannot be returned for a refund, including a sealed, unopened box. There is no size exchange.",
+      },
+      { h2: "Cancelling and refunds" },
+      {
+        ul: [
+          "Whatever has reached you is not refunded; the rest of the amount you paid is.",
+          "If you cancel after receiving the sizing kit, you are refunded the amount paid minus the sizing kit's price. Cash on Delivery customers share a UPI ID or bank account for the refund.",
+          "If you paid online and never accept the sizing kit, you are refunded in full.",
+          "If you refuse your ring at delivery, you are refunded the amount paid minus the sizing kit's price, once the ring is back with us.",
+          "The ₹100 Cash on Delivery fee is never refunded.",
+          "Once your ring has shipped, the order can no longer be cancelled.",
+        ],
       },
       { h2: "Sizing" },
       {
-        p: "To avoid sizing issues, use our size calculator or order a free sizing kit before your ring ships. If your ring does not fit, contact us and we will help you find the right size.",
+        p: "A sizing kit is included with your ring and ships first. Use the sizers at home, then submit your size from your account. Once submitted, your size is locked and cannot be changed, so please confirm it carefully. There is no size exchange.",
+      },
+      { h2: "The 15-day target" },
+      {
+        p: "After your sizing kit is delivered, please submit your size within 15 days. This is a target, not a deadline: your order is not cancelled if you take longer. We will keep reminding you, our team may call to help, and we ship your ring as soon as you send your size. If you decide to cancel after the 15 days, the same refund applies as for any cancellation after the kit.",
       },
       { h2: "How to reach us" },
-      { p: `Email ${SITE.email} or WhatsApp us and our team will take it from there.` },
+      { p: `${SITE.email ? `Email ${SITE.email}` : "Use the contact form on our Support page"}${SITE.waNumber ? " or WhatsApp us" : ""} and our team will take it from there. Support hours: ${SITE.supportHours}.` },
     ],
   },
 };

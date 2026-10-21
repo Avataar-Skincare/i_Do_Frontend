@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { apiGet, apiPost, apiDelete, withAuth } from "@/lib/api";
+import { apiGet, apiPost, apiDelete } from "@/lib/api";
 
 export type AuthUser = {
   id: string;
@@ -10,7 +10,7 @@ export type AuthUser = {
   fullName: string | null;
   role: string;
   createdAt: string;
-  /** Only meaningful when `email` is set — a phone-only account has no email to verify. */
+  /** Only meaningful when `email` is set. */
   emailVerifiedAt: string | null;
   /** Only meaningful when `phone` is set. */
   phoneVerifiedAt: string | null;
@@ -19,73 +19,48 @@ export type AuthUser = {
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
-  /** Set only while a just-registered (by email) account is waiting on its OTP — see register(). */
-  pendingVerificationEmail: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  /** Email signups hold no session until verifyEmail() succeeds. Phone accounts don't use this — see sendPhoneOtp/verifyPhoneOtp. */
-  register: (email: string, password: string, fullName?: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
-  verifyEmail: (code: string) => Promise<void>;
-  resendVerificationEmail: () => Promise<void>;
+  /** Sends a 6-digit email code — works for both a new and an existing account. */
+  sendEmailOtp: (email: string) => Promise<void>;
+  /** Verifying logs the account in — creating it first if this email has no account yet (fullName only used then). */
+  verifyEmailOtp: (email: string, code: string, fullName?: string) => Promise<void>;
   /** Sends a 6-digit SMS code to this phone — works for both a new and an existing phone account. */
   sendPhoneOtp: (phone: string) => Promise<void>;
   /** Verifying logs the account in — creating it first if this phone has no account yet (fullName only used then). */
   verifyPhoneOtp: (phone: string, code: string, fullName?: string) => Promise<void>;
-  claimOrder: (token: string, opts?: { password?: string; fullName?: string }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-const TOKEN_KEY = "ido_auth_token";
 
-function readToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-/** Plain (non-hook) accessor for code outside React components — e.g. orders-storage/consults-storage. */
-export function getAuthToken(): string | null {
-  return readToken();
-}
-
-function writeToken(token: string | null) {
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    // ignore — same fallback pattern as cart-context
-  }
-}
-
+/**
+ * No token of any kind is ever handled here — login sets HttpOnly ido_at/
+ * ido_rt cookies server-side (see i_Do_Backend's AuthController), which this
+ * code can't read even if it wanted to. Every call just needs `credentials:
+ * "include"` (lib/api.ts does this on every request), and the browser does
+ * the rest, including the silent-refresh-and-retry on an expired access
+ * token cookie.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [pendingVerification, setPendingVerification] = useState<{ token: string; user: AuthUser } | null>(null);
 
   useEffect(() => {
-    const token = readToken();
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    apiGet<AuthUser>("/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+    apiGet<AuthUser>("/auth/me")
       .then(setUser)
-      .catch(() => writeToken(null)) // stale/expired token — drop it silently
+      .catch(() => {
+        // No session cookie, or the refresh token is also dead — not logged in.
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(email: string, password: string) {
-    const res = await apiPost<{ user: AuthUser; token: string }>("/auth/login", { email, password });
-    writeToken(res.token);
-    setUser(res.user);
+  async function sendEmailOtp(email: string) {
+    await apiPost("/auth/email/send-otp", { email });
   }
 
-  async function register(email: string, password: string, fullName?: string) {
-    const res = await apiPost<{ user: AuthUser; token: string }>("/auth/register", { email, password, fullName });
-    setPendingVerification({ token: res.token, user: res.user });
+  async function verifyEmailOtp(email: string, code: string, fullName?: string) {
+    const res = await apiPost<{ user: AuthUser }>("/auth/email/verify-otp", { email, code, fullName });
+    setUser(res.user);
   }
 
   async function sendPhoneOtp(phone: string) {
@@ -93,49 +68,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function verifyPhoneOtp(phone: string, code: string, fullName?: string) {
-    const res = await apiPost<{ user: AuthUser; token: string }>("/auth/phone/verify-otp", { phone, code, fullName });
-    writeToken(res.token);
+    const res = await apiPost<{ user: AuthUser }>("/auth/phone/verify-otp", { phone, code, fullName });
     setUser(res.user);
   }
 
-  function logout() {
-    writeToken(null);
+  async function logout() {
+    await apiPost("/auth/logout", {}).catch(() => {
+      // Best-effort — the user is logging out either way, not staying stuck on a network error.
+    });
     setUser(null);
   }
 
   async function deleteAccount() {
-    const token = readToken();
-    await apiDelete("/auth/me", { headers: { Authorization: `Bearer ${token}` } });
-    writeToken(null);
+    await apiDelete("/auth/me");
     setUser(null);
-  }
-
-  async function verifyEmail(code: string) {
-    const tok = pendingVerification?.token ?? readToken();
-    await apiPost("/auth/verify-email", { code }, withAuth(tok));
-
-    if (pendingVerification) {
-      writeToken(pendingVerification.token);
-      setUser({ ...pendingVerification.user, emailVerifiedAt: new Date().toISOString() });
-      setPendingVerification(null);
-    } else {
-      setUser((prev) => (prev ? { ...prev, emailVerifiedAt: new Date().toISOString() } : prev));
-    }
-  }
-
-  async function resendVerificationEmail() {
-    const tok = pendingVerification?.token ?? readToken();
-    await apiPost("/auth/resend-verification", {}, withAuth(tok));
-  }
-
-  async function claimOrder(token: string, opts?: { password?: string; fullName?: string }) {
-    const res = await apiPost<{ user: AuthUser; token: string }>("/auth/claim-order", {
-      token,
-      password: opts?.password,
-      fullName: opts?.fullName,
-    });
-    writeToken(res.token);
-    setUser(res.user);
   }
 
   return (
@@ -143,16 +89,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         loading,
-        pendingVerificationEmail: pendingVerification?.user.email ?? null,
-        login,
-        register,
         logout,
         deleteAccount,
-        verifyEmail,
-        resendVerificationEmail,
+        sendEmailOtp,
+        verifyEmailOtp,
         sendPhoneOtp,
         verifyPhoneOtp,
-        claimOrder,
       }}
     >
       {children}

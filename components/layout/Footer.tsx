@@ -28,7 +28,7 @@ const SUPPORT_LINKS: Array<[string, string]> = [
 const PAYMENT_CHIPS = ["UPI", "RuPay", "Visa", "Mastercard", "COD", "Razorpay secured"];
 
 export function Footer() {
-  const waHref = `https://wa.me/${SITE.waNumber}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+  const waHref = SITE.waNumber ? `https://wa.me/${SITE.waNumber}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}` : null;
 
   return (
     <footer className="bg-nav-2 text-[#C8BCA5] pt-16 pb-7.5">
@@ -45,26 +45,30 @@ export function Footer() {
               <a
                 href="#"
                 aria-label="Instagram"
-                className="w-[38px] h-[38px] rounded-full bg-white/6 grid place-items-center hover:bg-gold hover:text-white transition-colors"
+                className="w-11 h-11 rounded-full bg-white/6 grid place-items-center hover:bg-gold hover:text-white transition-colors"
               >
                 <Icon name="ig" size={17} />
               </a>
-              <a
-                href={waHref}
-                target="_blank"
-                rel="noopener"
-                aria-label="WhatsApp"
-                className="w-[38px] h-[38px] rounded-full bg-white/6 grid place-items-center hover:bg-gold hover:text-white transition-colors"
-              >
-                <Icon name="wa" size={17} />
-              </a>
-              <a
-                href={`mailto:${SITE.email}`}
-                aria-label="Email"
-                className="w-[38px] h-[38px] rounded-full bg-white/6 grid place-items-center hover:bg-gold hover:text-white transition-colors"
-              >
-                <Icon name="mail" size={17} />
-              </a>
+              {waHref && (
+                <a
+                  href={waHref}
+                  target="_blank"
+                  rel="noopener"
+                  aria-label="WhatsApp"
+                  className="w-11 h-11 rounded-full bg-white/6 grid place-items-center hover:bg-gold hover:text-white transition-colors"
+                >
+                  <Icon name="wa" size={17} />
+                </a>
+              )}
+              {SITE.email && (
+                <a
+                  href={`mailto:${SITE.email}`}
+                  aria-label="Email"
+                  className="w-11 h-11 rounded-full bg-white/6 grid place-items-center hover:bg-gold hover:text-white transition-colors"
+                >
+                  <Icon name="mail" size={17} />
+                </a>
+              )}
             </div>
           </div>
 
@@ -77,11 +81,11 @@ export function Footer() {
           <div>
             © {new Date().getFullYear()} {SITE.legalName} · {SITE.brand} by {SITE.parent}
             &nbsp;·&nbsp;
-            <Link href="/legal/privacy" className="text-gold">
+            <Link href="/legal/privacy" className="inline-block py-3.5 -my-3.5 px-1 text-gold">
               Privacy
             </Link>{" "}
             ·{" "}
-            <Link href="/legal/terms" className="text-gold">
+            <Link href="/legal/terms" className="inline-block py-3.5 -my-3.5 px-1 text-gold">
               Terms
             </Link>
           </div>
@@ -120,7 +124,7 @@ function FooterCol({
             href={href}
             target="_blank"
             rel="noopener"
-            className="block text-sm text-[#C0B49D] py-1.5 hover:text-gold-soft transition-colors"
+            className="flex items-center min-h-11 md:min-h-0 text-sm text-[#C0B49D] py-1.5 hover:text-gold-soft transition-colors"
           >
             {label}
           </a>
@@ -128,7 +132,7 @@ function FooterCol({
           <Link
             key={`${href}-${i}`}
             href={href}
-            className="block text-sm text-[#C0B49D] py-1.5 hover:text-gold-soft transition-colors"
+            className="flex items-center min-h-11 md:min-h-0 text-sm text-[#C0B49D] py-1.5 hover:text-gold-soft transition-colors"
           >
             {label}
           </Link>

@@ -52,68 +52,112 @@ framework.
 
 | Path | What lives there |
 |---|---|
-| `app/` | Routes: `/` (home), `/ring`, `/app`, `/about`, `/journal`, `/journal/[slug]`, `/sizing`, `/support`, `/legal/[slug]`, `/shop`, `/cart`, `/checkout`, `/confirm`, `/account`, `/claim-order`, `/reset-password`, `/consults` |
+| `app/` | Routes: `/` (home), `/ring`, `/app`, `/about`, `/journal`, `/journal/[slug]`, `/sizing`, `/support`, `/legal/[slug]`, `/shop`, `/cart`, `/checkout`, `/confirm`, `/account`, `/consults` |
 | `components/<page>/` | Components grouped by the page that uses them; shared primitives in `components/ui/`, header/footer in `components/layout/` |
 | `lib/content/*.ts` | **All site copy and product data** (prices, specs, FAQs, legal, journal). Edit text here, not in JSX |
-| `lib/api.ts` | The only HTTP client — `apiGet/Post/Patch/Delete`, `withAuth(token)`, `ApiError` |
-| `lib/auth-context.tsx` | Auth state; JWT in `localStorage["ido_auth_token"]`. Email+password or passwordless phone OTP |
+| `lib/api.ts` | The only HTTP client — `apiGet/Post/Patch/Delete`, silent 401 refresh, `ApiError` (with the contract `code`) |
+| `lib/auth-context.tsx` | Auth state; cookie session, passwordless email or phone OTP |
 | `lib/cart-context.tsx` | Cart in `localStorage["ido_cart"]` — client-only, never sent until checkout |
 | `lib/orders-storage.ts`, `lib/consults-storage.ts` | Thin API wrappers (despite the names, nothing is stored locally) |
 | `lib/razorpay.ts` | Lazy-loads Checkout.js, creates the Razorpay order via the backend, returns the signed payment |
 
 ## Auth
 
-`lib/auth-context.tsx` + `components/account/AuthForm.tsx`. Two genuinely different
-flows behind one top-level email/phone toggle, because the backend treats them as
-different account types:
-- **Email**: password-based. `register()` doesn't persist a session immediately —
-  it sets `pendingVerification` and the UI moves to a 6-digit code step
-  (`verifyEmail()`); only on success does a real token get written.
-- **Phone**: passwordless. There is no password field at all for this path — entering
-  a phone number + submitting a 6-digit code (`sendPhoneOtp`/`verifyPhoneOtp`) is the
-  entire flow, and it works identically whether the phone is new or returning
-  (creates-or-logs-in in one call, mirroring the backend).
-- `AuthModal.tsx` wraps `AuthForm` for the "log in to continue" interrupt pattern used
-  by both checkout and consult booking — placing an order or booking a consult
-  requires an account (backend-enforced); browsing/filling the form doesn't.
+Passwordless, decided final: **email OTP or phone OTP, no password anywhere** (no register,
+login, forgot-password, reset-password or verify-email screens). One form
+(`components/account/AuthForm.tsx`) with an email/phone toggle: enter the address, enter the
+6-digit code, done. It works the same for a new and a returning account (the first
+successful code creates the account). `lib/auth-context.tsx` exposes
+`sendEmailOtp/verifyEmailOtp` and `sendPhoneOtp/verifyPhoneOtp`.
+
+- **Session = HttpOnly cookies** (`ido_at` 15 min, `ido_rt` 60 days) set by the API;
+  `lib/api.ts` sends `credentials: "include"` and `X-Requested-With: ido`, and on a 401 makes
+  one silent `POST /auth/refresh` and replays the request. No token is ever stored in
+  `localStorage` or readable by this code.
+- `AuthModal` wraps `AuthForm` for the "log in to continue" interrupt used by checkout and
+  consult booking; it takes an `onSuccess` callback to carry on after login. An order or
+  booking needs an account (backend-enforced); browsing and filling the form doesn't.
+- **Contract gap:** API contract v1.0.0 only defines `/auth/phone/send-otp` and
+  `/auth/phone/verify-otp` for OTP login. The email calls (`/auth/email/send-otp`,
+  `/auth/email/verify-otp`) are not in the contract or the backend yet, so email sign-in
+  can't work (or be mocked) until they are added. Per Dev Sync, log the change under
+  "API contract changes" first.
 
 ## Cart & checkout
 
-- **Cart is `localStorage` only** — no backend table, by design. An `Order` is what
-  gets persisted; the cart itself is ephemeral. The `Order` type in
-  `lib/orders-storage.ts` mirrors `i_Do_Backend/src/orders/entities/order.entity.ts`
-  — change both together.
-- `CartItem` dedup key is `id + finish + size` — adding the same combo again just
-  bumps `qty`. Decrementing qty to 0 (the "−" button in `CartLineItem.tsx`) removes
-  the line entirely, same end result as the explicit "Remove" button.
-- **Flow**: cart (localStorage) → `/checkout` → COD calls `saveOrder()` directly;
-  online payment creates a Razorpay order first (`POST /orders/razorpay-order`),
-  opens Checkout.js, then calls `saveOrder()` with the signed payment — the backend
-  re-verifies the signature server-side before persisting anything, the frontend's
-  own claim of success is never trusted alone. Both paths `clearCart()` and redirect
-  to `/confirm?orderId=...` only on real success.
-  ⚠️ **The order total is computed here, in the browser, and the backend currently
-  trusts it as sent** — see the Known gaps in `i_Do_Backend/CLAUDE.md`. Don't add
-  more client-trusted money fields until that's fixed.
-- Order/consult status shown on `/confirm` and the account dashboard is **simulated**
-  client-side from days elapsed since the order date (`lib/order-status.ts`, ported
-  from the prototype's `ORDER_STAGES`) — there's no real fulfillment backend yet. Once
-  shipment tracking (e.g. Delhivery) exists, this needs to be replaced with the real
-  `order.status`, not patched further.
+Built against the API contract (`../i_Do_Backend/api/openapi.yaml`, v1.0.0). Amounts are
+integer paise and **the client never sends a price**.
 
-## Sizing: bundled into the ring's add-to-bag flow, not a separate product
+- **Cart is `localStorage` only** (`lib/cart-context.tsx`, via `useSyncExternalStore`) and holds
+  at most **one ring** (qty fixed at 1; adding again replaces it). It stores `finishId`
+  (gold, silver, black) for the API. An `Order` is what gets persisted, by the backend.
+- **Catalog and quote** (`lib/catalog.ts`): `GET /catalog` gives the display price, COD fee
+  and whether COD is on; `POST /orders/quote {finish, paymentMethod, pin}` gives the server's
+  totals and `codAvailable` once a 6-digit PIN is entered. Totals shown before that are
+  estimates. A quote is only used for the finish, method and PIN it was fetched for.
+- **Placing an order** (`components/checkout/CheckoutForm.tsx`, `lib/orders-storage.ts`):
+  `POST /orders` with an `Idempotency-Key`. One key per checkout attempt: reused when the
+  same details are retried (so "Payment not completed. Try again" resumes the same pending
+  order), a fresh key as soon as any detail changes. Online orders return a `razorpay`
+  object; the widget opens (`lib/razorpay.ts`), then `POST /orders/{id}/payment/verify`
+  sends the result. Closing the widget raises `PaymentNotCompletedError` and returns to
+  checkout with the cart intact. A verify failure other than `SIGNATURE_INVALID` still goes to
+  `/confirm`, because Razorpay's webhook is the source of truth. COD orders go straight to
+  `/confirm` as `cod_pending` (ops confirm by phone or WhatsApp).
+- **Errors** carry the contract's `code` (`ApiError.code`): `STORE_NOT_LIVE` (launch gate
+  closed), `COD_NOT_SERVICEABLE`, `GSTIN_INVALID`, `SIGNATURE_INVALID`,
+  `ACCOUNT_HAS_OPEN_ORDER`. Branch on the code; show the server's `message`.
+- **`/confirm`** reads `GET /orders/{id}` (owner only) and keeps polling every 4 s for about
+  12 minutes while the status is `pending_payment` ("Confirming your payment…").
+- **Order status** shown on `/confirm` and the account pages is the real `order.status`
+  (`lib/order-status.ts`: the 9 states from LLD §3.1). `GET /orders/mine` never returns
+  `pending_payment` orders.
 
-Changed 2026-10-13 (matching a competitor's — Luna's — product-page UX). The
-standalone "Sizing" nav tab is gone (`lib/content/site.ts`'s `NAV`); `/sizing` itself
-still exists (linked from the footer and `/ring`) but is no longer the primary path.
-On `/shop`, `components/shop/ProductInfo.tsx`'s size section defaults to a selected
-**"Free Sizing Kit"** card (`sizeMode: "kit" | "known"`, default `"kit"`) — "Add to
-bag" works immediately with no numeric size chosen, storing `size: "Free Sizing Kit"`
-on the cart/order line instead of a US size. Picking "I know my size" reveals the
-original size grid instead, same as before. `lib/content/shop.ts`'s
-`SIZING_KIT_IMAGE` (`ring_4.webp`, a packaging shot) is the dedicated image for this
-card and for `/sizing`'s own kit button — deliberately not the ring's own product
-photo, so the kit reads as its own distinct thing in the cart.
+## Sizing: the kit is included, the customer never picks a size at order time
+
+Confirmed with the manager 15–16 Oct 2026 (see the `i do Website Decisions` doc). Every
+order starts with the sizing kit, which ships first; the customer submits their size from
+their account after the kit arrives, then the ring ships. `/shop`
+(`components/shop/ProductInfo.tsx`) shows a "Sizing kit included with your ring" card and
+the sizes currently available (display only, nothing to select). Add to bag stores
+`size: "Sizing kit included"`. There is no "I know my size" path and no standalone kit
+product; `/sizing` is only the size calculator. A submitted size is final (the account page
+must ask "This can't be changed later. Confirm?" and send `confirmed: true`). Wording is
+"sizing kit included with your ring", never "free sizing kit".
+`lib/content/shop.ts`'s `SIZING_KIT_IMAGE` (`ring_4.webp`) is the kit's image.
+
+Other confirmed rules reflected in the copy: COD fee ₹100 (never refunded), full COD
+payment at sizing-kit delivery, delivery 4–7 working days, no refund on a delivered ring,
+replacement only for damaged or wrong items reported within 7 days with a box-opening
+video and photos. `SITE.socialProofEnabled` (default `false`) hides the unconfirmed
+rating, customer count, cities, Shark Tank line and sample reviews until the business
+confirms they are real.
+
+## Submitting the ring size (Account → Orders)
+
+`components/account/SizeSubmit.tsx`, shown inside `OrderCard` while an order is `kit_delivered`.
+The customer picks a US size (6 to 13), sees "You're choosing US N. This can't be changed later.
+Confirm?", and only then `POST /orders/{id}/size {usSize, confirmed: true}` is sent
+(`submitSize` in `lib/orders-storage.ts`). The order then reads "Size US N is locked. Your ring ships
+next." The target date (`sizeDueAt`, shown in IST with days left) is a reminder, never a cut-off: a size
+is still accepted after it. A 409 `SIZE_LOCKED` or `INVALID_TRANSITION` shows the server message and
+reloads the order. Sizes the catalog marks out of stock only get a "ships later" tag; backorder and
+reservation stay invisible to the customer, per the contract.
+
+## Catalog, tracking and order states (LLD §8)
+
+- **`lib/use-catalog.ts`** is the one shared `GET /catalog` request. `/shop` takes the price, list price and
+  per-finish stock from it (an out-of-stock size shows a dashed "ships later" chip, still read-only); the
+  account size screen and checkout use the same data. If it can't be reached the page falls back to the
+  static values in `lib/content/site.ts`, so nothing breaks.
+- **`lib/order-status.ts`** holds the order-state helpers: `orderStatusLabel`, `ringReturning` (status
+  `ring_shipped` while the newest ring shipment is `rto` reads "Your ring is on its way back to us"),
+  `CANCEL_REASON_TEXT`, `refundLine` and `returningText`. Refund amounts are always the server's, never
+  worked out in the browser.
+- **Tracking** (`TrackTimeline`, `OrderCard`): a cancelled order shows its reason and refund; the kit and ring
+  stages link to the courier (`Track with {courier} · AWB {awb}`, plain text if there is no URL).
+- **`/confirm`** explains the two parcels (kit first, then the ring after the size is submitted).
+- Legal copy includes the 15-day size target (a target, not a deadline) and `SITE.supportHours`.
 
 ## Conventions
 

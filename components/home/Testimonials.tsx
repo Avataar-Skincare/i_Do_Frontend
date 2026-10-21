@@ -4,6 +4,7 @@ import { SectionHead } from "@/components/ui/SectionHead";
 import { REVIEWS } from "@/lib/content/home";
 
 export function Testimonials() {
+  if (REVIEWS.length === 0) return null;
   return (
     <Section>
       <SectionHead center eyebrow="Early community" title="Women are already glowing with i do" />
@@ -27,11 +28,6 @@ export function Testimonials() {
             </div>
           </div>
         ))}
-      </div>
-      <div className="text-center mt-6">
-        <span className="inline-flex items-center gap-2 text-[0.74rem] text-muted border border-dashed border-line-2 py-1.5 px-3.5 rounded-pill">
-          <Icon name="info" size={14} /> Illustrative reviews shown for this preview site
-        </span>
       </div>
     </Section>
   );

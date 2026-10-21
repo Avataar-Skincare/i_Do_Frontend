@@ -9,31 +9,31 @@ import { SITE } from "@/lib/content/site";
 import { FINISHES, SIZES } from "@/lib/content/product";
 import { GALLERY, PRODUCT, HIGHLIGHTS, CONSULT_CALLOUT, SIZING_KIT_IMAGE } from "@/lib/content/shop";
 import { useCart } from "@/lib/cart-context";
+import { useCatalog } from "@/lib/use-catalog";
 import { ProductAccordion } from "./ProductAccordion";
-
-type SizeMode = "kit" | "known";
 
 export function ProductInfo() {
   const { addItem } = useCart();
+  const catalog = useCatalog();
   const [finishId, setFinishId] = useState(FINISHES[0].id);
-  const [sizeMode, setSizeMode] = useState<SizeMode>("kit");
-  const [size, setSize] = useState<number | null>(null);
-  const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
   const finish = FINISHES.find((f) => f.id === finishId)!;
   const mainImage = GALLERY[0].src;
-  const canAddToBag = sizeMode === "kit" || !!size;
+  // Price and stock come from the server; the static values are only the fallback if it can't be reached.
+  const price = catalog?.pricePaise ?? SITE.priceInPaise;
+  const listPrice = catalog?.listPricePaise ?? SITE.mrpInPaise;
+  const stock = Object.fromEntries((catalog?.finishes.find((f) => f.id === finishId)?.sizes ?? []).map((s) => [s.us, s.inStock]));
 
   function handleAddToBag() {
-    if (!canAddToBag) return;
     addItem({
       id: "ring",
       name: PRODUCT.name,
       finish: finish.name,
-      size: sizeMode === "kit" ? "Free Sizing Kit" : String(size),
-      price: SITE.priceInPaise,
-      qty,
+      finishId: finish.id,
+      size: "Sizing kit included",
+      price,
+      qty: 1,
       image: mainImage,
     });
     setAdded(true);
@@ -43,10 +43,14 @@ export function ProductInfo() {
   return (
     <div>
       <div className="flex items-center gap-2 text-[0.9rem] text-muted mb-3">
-        <Icon name="star" size={16} className="text-gold" />
-        <strong className="text-ink font-semibold">{SITE.rating}</strong>
-        <span>· {SITE.customers} women on the Avataar platform ·</span>
-        <Link href="/support" className="text-gold-deep font-semibold">
+        {SITE.socialProofEnabled && (
+          <>
+            <Icon name="star" size={16} className="text-gold" />
+            <strong className="text-ink font-semibold">{SITE.rating}</strong>
+            <span>· {SITE.customers} women on the Avataar platform ·</span>
+          </>
+        )}
+        <Link href="/support" className="inline-flex items-center py-3 -my-3 text-gold-deep font-semibold">
           Ask us anything
         </Link>
       </div>
@@ -57,10 +61,10 @@ export function ProductInfo() {
       <p className="text-muted mb-5">{PRODUCT.tagline}</p>
 
       <div className="flex items-baseline gap-3 mb-1.5">
-        <span className="font-serif text-[2.3rem] font-medium">{formatINR(SITE.priceInPaise)}</span>
-        <span className="text-muted line-through text-[1.1rem]">{formatINR(SITE.mrpInPaise)}</span>
+        <span className="font-serif text-[2.3rem] font-medium">{formatINR(price)}</span>
+        <span className="text-muted line-through text-[1.1rem]">{formatINR(listPrice)}</span>
         <span className="text-[0.78rem] font-bold text-white bg-gold py-1.5 px-3 rounded-pill">
-          Save {formatINR(SITE.mrpInPaise - SITE.priceInPaise)}
+          Save {formatINR(listPrice - price)}
         </span>
       </div>
       <p className="text-[0.85rem] text-muted mb-6">Inclusive of all taxes · Free shipping on prepaid orders</p>
@@ -90,84 +94,54 @@ export function ProductInfo() {
       </div>
 
       <div className="mb-6">
-        <div className="font-mono text-xs tracking-[0.1em] uppercase text-muted mb-3">Select size</div>
+        <div className="font-mono text-xs tracking-[0.1em] uppercase text-muted mb-3">Sizing</div>
 
-        <button
-          type="button"
-          onClick={() => setSizeMode("kit")}
-          className={[
-            "w-full flex gap-3.5 items-start text-left p-4 rounded-xl border-[1.5px] transition-colors mb-2.5",
-            sizeMode === "kit" ? "border-gold bg-gold-tint/40" : "border-line-2 bg-surface",
-          ].join(" ")}
-        >
+        <div className="w-full flex gap-3.5 items-start text-left p-4 rounded-xl border-[1.5px] border-gold bg-gold-tint/40 mb-3">
           <div className="relative w-14 h-14 shrink-0 overflow-hidden rounded-lg">
-            <Image src={SIZING_KIT_IMAGE} alt="Free sizing kit" fill sizes="56px" className="object-cover" />
+            <Image src={SIZING_KIT_IMAGE} alt="Sizing kit" fill sizes="56px" className="object-cover" />
           </div>
           <div>
-            <div className="font-semibold text-[0.95rem] mb-0.5">Free Sizing Kit</div>
+            <div className="font-semibold text-[0.95rem] mb-0.5">Sizing kit included with your ring</div>
             <p className="text-[0.82rem] text-muted m-0">
-              After placing your order, a complimentary sizing kit will be sent to you, helping you determine a
-              perfect size for you.
+              The sizing kit ships first. Try the sizers at home, then submit your size from your account and we ship
+              your ring. You don&apos;t pick a size now, and once you submit it, it can&apos;t be changed.
             </p>
           </div>
-        </button>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => setSizeMode("known")}
-          className={[
-            "w-full flex justify-between items-center text-left py-3.5 px-4 rounded-xl border-[1.5px] transition-colors",
-            sizeMode === "known" ? "border-gold" : "border-line-2 bg-surface",
-          ].join(" ")}
-        >
-          <span className="font-semibold text-[0.95rem]">I know my size</span>
-          <Icon
-            name="chevron"
-            size={16}
-            className={["transition-transform", sizeMode === "known" ? "rotate-90" : ""].join(" ")}
-          />
-        </button>
-
-        {sizeMode === "known" && (
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mt-3">
-            {SIZES.map((s) => (
-              <button
+        <div className="text-[0.82rem] text-muted mb-2">
+          <span className="font-semibold text-ink">Available sizes</span> · you choose your size after the kit arrives
+        </div>
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2" aria-label="Sizes currently available">
+          {SIZES.map((s) => {
+            const later = stock[s.us] === false;
+            return (
+              <span
                 key={s.us}
-                onClick={() => setSize(s.us)}
                 className={[
-                  "aspect-square rounded-xl border-[1.5px] font-semibold grid place-items-center transition-colors",
-                  size === s.us ? "bg-nav border-nav text-white" : "border-line-2 bg-surface text-ink",
+                  "rounded-xl font-semibold grid place-items-center text-center leading-tight",
+                  later
+                    ? "py-1.5 border border-dashed border-line-2 bg-bg-2 text-muted"
+                    : "aspect-square border-[1.5px] border-line-2 bg-surface text-ink",
                 ].join(" ")}
               >
-                {s.us}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-4 mb-5">
-        <span className="font-mono text-xs tracking-[0.1em] uppercase text-muted">Qty</span>
-        <div className="inline-flex items-center border-[1.5px] border-line-2 rounded-pill overflow-hidden">
-          <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-10.5 h-10.5 grid place-items-center text-lg hover:bg-bg-3">
-            −
-          </button>
-          <span className="min-w-10 text-center font-semibold">{qty}</span>
-          <button onClick={() => setQty((q) => q + 1)} className="w-10.5 h-10.5 grid place-items-center text-lg hover:bg-bg-3">
-            +
-          </button>
+                US {s.us}
+                {later && <span className="block text-[0.62rem] font-normal">ships later</span>}
+              </span>
+            );
+          })}
         </div>
       </div>
 
+      <p className="text-[0.82rem] text-muted mb-4">One ring per order.</p>
+
       <button
         onClick={handleAddToBag}
-        disabled={!canAddToBag}
-        className="w-full bg-gold text-white font-semibold py-4 rounded-pill inline-flex items-center justify-center gap-2.5 hover:bg-gold-deep transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-6"
+        className="w-full bg-gold text-white font-semibold py-4 rounded-pill inline-flex items-center justify-center gap-2.5 hover:bg-gold-deep transition-colors mb-6"
       >
         <Icon name="cart" size={18} />
-        {added ? "Added to bag ✓" : `Add to bag · ${formatINR(SITE.priceInPaise)}`}
+        {added ? "Added to bag ✓" : `Add to bag · ${formatINR(price)}`}
       </button>
-      {!canAddToBag && <p className="text-[0.82rem] text-muted -mt-4 mb-6 text-center">Select a size to continue</p>}
 
       <div className="grid grid-cols-2 gap-3 mb-6">
         {HIGHLIGHTS.map((h) => (

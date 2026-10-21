@@ -10,7 +10,7 @@ import { SITE } from "@/lib/content/site";
 export const metadata: Metadata = {
   title: `About — ${SITE.brand} by ${SITE.parent}`,
   description:
-    "i do comes from Avataar — a dermatologist-led, at-home aesthetics brand trusted by 30,000+ women across 18+ Indian cities. We kept hearing the same thing: \"I want to understand my skin, not just track my steps.\" So we made it.",
+    "i do comes from Avataar — a dermatologist-led, at-home aesthetics brand. We kept hearing the same thing: \"I want to understand my skin, not just track my steps.\" So we made it.",
 };
 
 export default function AboutPage() {
@@ -21,14 +21,13 @@ export default function AboutPage() {
         title="We built the ring we wished existed"
         lede={
           <>
-            i do comes from Avataar — a dermatologist-led, at-home aesthetics brand trusted by
-            30,000+ women across 18+ Indian cities. We kept hearing the same thing: &ldquo;I want
+            i do comes from Avataar — a dermatologist-led, at-home aesthetics brand. We kept hearing the same thing: &ldquo;I want
             to understand my skin, not just track my steps.&rdquo; So we made it.
           </>
         }
       />
       <OurBelief />
-      <TrustSection />
+      {SITE.socialProofEnabled && <TrustSection />}
       <PromisesSection />
       <CTABand
         eyebrow="Say it to yourself"

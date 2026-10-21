@@ -53,7 +53,7 @@ export function Newsletter() {
                 placeholder="you@email.com"
                 required
                 aria-label="Email"
-                className="flex-1 min-w-[200px] bg-bg-2 border border-line-2 rounded-pill py-3.5 px-5 text-[0.95rem] focus:outline-none focus:border-gold"
+                className="flex-1 min-w-[200px] bg-bg-2 border border-line-2 rounded-pill py-3.5 px-5 text-base focus:outline-none focus:border-gold"
               />
               <button
                 type="submit"

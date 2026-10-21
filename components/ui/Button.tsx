@@ -23,7 +23,7 @@ const SIZE: Record<Size, string> = {
 };
 
 const BASE =
-  "inline-flex items-center justify-center gap-2 rounded-pill font-semibold leading-none text-center transition active:translate-y-px";
+  "inline-flex items-center justify-center gap-2 min-h-11 md:min-h-0 rounded-pill font-semibold leading-none text-center transition active:translate-y-px";
 
 function classes(variant: Variant, size: Size, className?: string) {
   return [BASE, VARIANT[variant], SIZE[size], className].filter(Boolean).join(" ");
