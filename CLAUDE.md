@@ -133,6 +133,17 @@ video and photos. `SITE.socialProofEnabled` (default `false`) hides the unconfir
 rating, customer count, cities, Shark Tank line and sample reviews until the business
 confirms they are real.
 
+## Submitting the ring size (Account → Orders)
+
+`components/account/SizeSubmit.tsx`, shown inside `OrderCard` while an order is `kit_delivered`.
+The customer picks a US size (6 to 13), sees "You're choosing US N. This can't be changed later.
+Confirm?", and only then `POST /orders/{id}/size {usSize, confirmed: true}` is sent
+(`submitSize` in `lib/orders-storage.ts`). The order then reads "Size US N is locked. Your ring ships
+next." The target date (`sizeDueAt`, shown in IST with days left) is a reminder, never a cut-off: a size
+is still accepted after it. A 409 `SIZE_LOCKED` or `INVALID_TRANSITION` shows the server message and
+reloads the order. Sizes the catalog marks out of stock only get a "ships later" tag; backorder and
+reservation stay invisible to the customer, per the contract.
+
 ## Conventions
 
 - **Money is always integer paise** — format with the shared `formatINR()` helper

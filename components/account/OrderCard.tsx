@@ -4,8 +4,18 @@ import { orderStatusLabel } from "@/lib/order-status";
 import { FINISHES } from "@/lib/content/product";
 import { GALLERY } from "@/lib/content/shop";
 import type { Order } from "@/lib/orders-storage";
+import { SizeSubmit } from "./SizeSubmit";
 
-export function OrderCard({ order, showTotal }: { order: Order; showTotal?: boolean }) {
+export function OrderCard({
+  order,
+  showTotal,
+  onOrderChange,
+}: {
+  order: Order;
+  showTotal?: boolean;
+  /** Called with the fresh order after something changes it (e.g. the size is submitted). */
+  onOrderChange?: (order: Order) => void;
+}) {
   return (
     <div className="bg-surface border border-line rounded-lg p-5 mb-4">
       <div className="flex items-start justify-between gap-3 mb-3.5">
@@ -38,6 +48,12 @@ export function OrderCard({ order, showTotal }: { order: Order; showTotal?: bool
           <span className="font-serif text-xl font-medium">{formatINR(order.total)}</span>
         </div>
       )}
+      {order.status === "size_submitted" && order.usSize && (
+        <p className="text-[0.88rem] text-ink-2 mt-3.5 mb-0">
+          Size US {order.usSize} is locked. Your ring ships next.
+        </p>
+      )}
+      {order.status === "kit_delivered" && onOrderChange && <SizeSubmit order={order} onSubmitted={onOrderChange} />}
     </div>
   );
 }

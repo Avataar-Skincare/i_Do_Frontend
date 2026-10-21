@@ -6,7 +6,17 @@ import { OrderCard } from "./OrderCard";
 import { EmptyState } from "./EmptyState";
 import { DeleteAccountSection } from "./DeleteAccountSection";
 
-export function OverviewTab({ user, orders, consults }: { user: AuthUser; orders: Order[]; consults: StoredConsult[] }) {
+export function OverviewTab({
+  user,
+  orders,
+  consults,
+  onOrderChange,
+}: {
+  user: AuthUser;
+  orders: Order[];
+  consults: StoredConsult[];
+  onOrderChange?: (order: Order) => void;
+}) {
   const firstName = (user.fullName || user.email?.split("@")[0] || user.phone || "there").split(" ")[0];
   const latest = orders[0];
 
@@ -26,7 +36,7 @@ export function OverviewTab({ user, orders, consults }: { user: AuthUser; orders
       {latest ? (
         <>
           <h3 className="text-lg font-semibold mb-3">Latest order</h3>
-          <OrderCard order={latest} />
+          <OrderCard order={latest} onOrderChange={onOrderChange} />
         </>
       ) : (
         <EmptyState

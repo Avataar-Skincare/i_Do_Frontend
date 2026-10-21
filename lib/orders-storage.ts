@@ -82,6 +82,16 @@ export function verifyPayment(orderId: string, proof: PaymentProof): Promise<Ord
   return apiPost<Order>(`/orders/${orderId}/payment/verify`, proof);
 }
 
+/**
+ * Submits the ring size once; it locks. Only while the order is `kit_delivered` (a size is still
+ * accepted after `sizeDueAt`). The caller must show "You're choosing US N. This can't be changed
+ * later. Confirm?" first, which is what `confirmed: true` attests. 409 SIZE_LOCKED or
+ * INVALID_TRANSITION if it is already locked or the kit hasn't been delivered.
+ */
+export function submitSize(orderId: string, usSize: number): Promise<Order> {
+  return apiPost<Order>(`/orders/${orderId}/size`, { usSize, confirmed: true });
+}
+
 /** Owner only. Also returns pending_payment orders, so /confirm can poll while a payment settles. */
 export function getOrder(id: string): Promise<Order> {
   return apiGet<Order>(`/orders/${id}`);

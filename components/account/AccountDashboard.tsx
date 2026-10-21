@@ -40,6 +40,11 @@ export function AccountDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Swap one order for its fresh copy (e.g. after the size is submitted) without refetching the lot.
+  function replaceOrder(updated: Order) {
+    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+  }
+
   if (!user) return null;
 
   return (
@@ -72,8 +77,8 @@ export function AccountDashboard() {
             <div className="text-center py-16 text-muted">Loading…</div>
           ) : (
             <>
-              {tab === "overview" && <OverviewTab user={user} orders={orders} consults={consults} />}
-              {tab === "orders" && <OrdersTab orders={orders} />}
+              {tab === "overview" && <OverviewTab user={user} orders={orders} consults={consults} onOrderChange={replaceOrder} />}
+              {tab === "orders" && <OrdersTab orders={orders} onOrderChange={replaceOrder} />}
               {tab === "consults" && <ConsultsTab consults={consults} />}
               {tab === "track" && <TrackTab orders={orders} />}
             </>
