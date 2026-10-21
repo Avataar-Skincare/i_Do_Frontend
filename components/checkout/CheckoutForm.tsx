@@ -12,7 +12,8 @@ import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { AuthModal } from "@/components/account/AuthModal";
 import { createOrder, verifyPayment, type CreateOrderInput } from "@/lib/orders-storage";
-import { getCatalog, quoteOrder, type Catalog, type FinishId, type PaymentMethod, type Quote } from "@/lib/catalog";
+import { quoteOrder, type FinishId, type PaymentMethod, type Quote } from "@/lib/catalog";
+import { useCatalog } from "@/lib/use-catalog";
 import { payWithRazorpay, PaymentNotCompletedError } from "@/lib/razorpay";
 import { ApiError } from "@/lib/api";
 
@@ -75,7 +76,7 @@ export function CheckoutForm() {
   const [paymentIncomplete, setPaymentIncomplete] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [prefilledFor, setPrefilledFor] = useState<string | null>(null);
-  const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const catalog = useCatalog();
   const [quoteState, setQuoteState] = useState<QuoteState | null>(null);
   // One Idempotency-Key per checkout attempt: reused on a retry of the same details
   // (so "Payment not completed. Try again" resumes the same pending order), and a
@@ -97,16 +98,6 @@ export function CheckoutForm() {
   function setField(key: keyof Fields, value: string) {
     setFields((f) => ({ ...f, [key]: value }));
   }
-
-  useEffect(() => {
-    let live = true;
-    getCatalog()
-      .then((c) => live && setCatalog(c))
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (!pinValid) return;

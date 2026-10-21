@@ -144,6 +144,21 @@ is still accepted after it. A 409 `SIZE_LOCKED` or `INVALID_TRANSITION` shows th
 reloads the order. Sizes the catalog marks out of stock only get a "ships later" tag; backorder and
 reservation stay invisible to the customer, per the contract.
 
+## Catalog, tracking and order states (LLD §8)
+
+- **`lib/use-catalog.ts`** is the one shared `GET /catalog` request. `/shop` takes the price, list price and
+  per-finish stock from it (an out-of-stock size shows a dashed "ships later" chip, still read-only); the
+  account size screen and checkout use the same data. If it can't be reached the page falls back to the
+  static values in `lib/content/site.ts`, so nothing breaks.
+- **`lib/order-status.ts`** holds the order-state helpers: `orderStatusLabel`, `ringReturning` (status
+  `ring_shipped` while the newest ring shipment is `rto` reads "Your ring is on its way back to us"),
+  `CANCEL_REASON_TEXT`, `refundLine` and `returningText`. Refund amounts are always the server's, never
+  worked out in the browser.
+- **Tracking** (`TrackTimeline`, `OrderCard`): a cancelled order shows its reason and refund; the kit and ring
+  stages link to the courier (`Track with {courier} · AWB {awb}`, plain text if there is no URL).
+- **`/confirm`** explains the two parcels (kit first, then the ring after the size is submitted).
+- Legal copy includes the 15-day size target (a target, not a deadline) and `SITE.supportHours`.
+
 ## Conventions
 
 - **Money is always integer paise** — format with the shared `formatINR()` helper

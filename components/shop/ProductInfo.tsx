@@ -9,15 +9,21 @@ import { SITE } from "@/lib/content/site";
 import { FINISHES, SIZES } from "@/lib/content/product";
 import { GALLERY, PRODUCT, HIGHLIGHTS, CONSULT_CALLOUT, SIZING_KIT_IMAGE } from "@/lib/content/shop";
 import { useCart } from "@/lib/cart-context";
+import { useCatalog } from "@/lib/use-catalog";
 import { ProductAccordion } from "./ProductAccordion";
 
 export function ProductInfo() {
   const { addItem } = useCart();
+  const catalog = useCatalog();
   const [finishId, setFinishId] = useState(FINISHES[0].id);
   const [added, setAdded] = useState(false);
 
   const finish = FINISHES.find((f) => f.id === finishId)!;
   const mainImage = GALLERY[0].src;
+  // Price and stock come from the server; the static values are only the fallback if it can't be reached.
+  const price = catalog?.pricePaise ?? SITE.priceInPaise;
+  const listPrice = catalog?.listPricePaise ?? SITE.mrpInPaise;
+  const stock = Object.fromEntries((catalog?.finishes.find((f) => f.id === finishId)?.sizes ?? []).map((s) => [s.us, s.inStock]));
 
   function handleAddToBag() {
     addItem({
@@ -26,7 +32,7 @@ export function ProductInfo() {
       finish: finish.name,
       finishId: finish.id,
       size: "Sizing kit included",
-      price: SITE.priceInPaise,
+      price,
       qty: 1,
       image: mainImage,
     });
@@ -55,10 +61,10 @@ export function ProductInfo() {
       <p className="text-muted mb-5">{PRODUCT.tagline}</p>
 
       <div className="flex items-baseline gap-3 mb-1.5">
-        <span className="font-serif text-[2.3rem] font-medium">{formatINR(SITE.priceInPaise)}</span>
-        <span className="text-muted line-through text-[1.1rem]">{formatINR(SITE.mrpInPaise)}</span>
+        <span className="font-serif text-[2.3rem] font-medium">{formatINR(price)}</span>
+        <span className="text-muted line-through text-[1.1rem]">{formatINR(listPrice)}</span>
         <span className="text-[0.78rem] font-bold text-white bg-gold py-1.5 px-3 rounded-pill">
-          Save {formatINR(SITE.mrpInPaise - SITE.priceInPaise)}
+          Save {formatINR(listPrice - price)}
         </span>
       </div>
       <p className="text-[0.85rem] text-muted mb-6">Inclusive of all taxes · Free shipping on prepaid orders</p>
@@ -103,16 +109,27 @@ export function ProductInfo() {
           </div>
         </div>
 
-        <div className="text-[0.82rem] text-muted mb-2">Sizes currently available</div>
+        <div className="text-[0.82rem] text-muted mb-2">
+          <span className="font-semibold text-ink">Available sizes</span> · you choose your size after the kit arrives
+        </div>
         <div className="grid grid-cols-4 sm:grid-cols-8 gap-2" aria-label="Sizes currently available">
-          {SIZES.map((s) => (
-            <span
-              key={s.us}
-              className="aspect-square rounded-xl border-[1.5px] border-line-2 bg-surface text-ink font-semibold grid place-items-center"
-            >
-              {s.us}
-            </span>
-          ))}
+          {SIZES.map((s) => {
+            const later = stock[s.us] === false;
+            return (
+              <span
+                key={s.us}
+                className={[
+                  "rounded-xl font-semibold grid place-items-center text-center leading-tight",
+                  later
+                    ? "py-1.5 border border-dashed border-line-2 bg-bg-2 text-muted"
+                    : "aspect-square border-[1.5px] border-line-2 bg-surface text-ink",
+                ].join(" ")}
+              >
+                US {s.us}
+                {later && <span className="block text-[0.62rem] font-normal">ships later</span>}
+              </span>
+            );
+          })}
         </div>
       </div>
 
@@ -123,7 +140,7 @@ export function ProductInfo() {
         className="w-full bg-gold text-white font-semibold py-4 rounded-pill inline-flex items-center justify-center gap-2.5 hover:bg-gold-deep transition-colors mb-6"
       >
         <Icon name="cart" size={18} />
-        {added ? "Added to bag ✓" : `Add to bag · ${formatINR(SITE.priceInPaise)}`}
+        {added ? "Added to bag ✓" : `Add to bag · ${formatINR(price)}`}
       </button>
 
       <div className="grid grid-cols-2 gap-3 mb-6">

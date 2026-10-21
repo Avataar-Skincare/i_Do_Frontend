@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SIZES } from "@/lib/content/product";
 import { formatIstDateTime, daysUntil } from "@/lib/format";
-import { getCatalog } from "@/lib/catalog";
+import { useCatalog } from "@/lib/use-catalog";
 import { ApiError } from "@/lib/api";
 import { getOrder, submitSize, type Order } from "@/lib/orders-storage";
 
@@ -18,22 +18,13 @@ export function SizeSubmit({ order, onSubmitted }: { order: Order; onSubmitted: 
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [inStock, setInStock] = useState<Record<number, boolean>>({});
   const [now] = useState(() => Date.now());
 
   // Informational only: sizes the catalog says are not on the shelf right now read "ships later".
-  useEffect(() => {
-    let live = true;
-    getCatalog()
-      .then((c) => {
-        const sizes = c.finishes.find((f) => f.id === order.finish)?.sizes ?? [];
-        if (live) setInStock(Object.fromEntries(sizes.map((s) => [s.us, s.inStock])));
-      })
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [order.finish]);
+  const catalog = useCatalog();
+  const inStock = Object.fromEntries(
+    (catalog?.finishes.find((f) => f.id === order.finish)?.sizes ?? []).map((s) => [s.us, s.inStock]),
+  );
 
   const due = order.sizeDueAt ?? null;
   const daysLeft = due ? daysUntil(due, now) : null;

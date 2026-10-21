@@ -24,6 +24,7 @@ export const SITE = {
   avataarUrl: "https://avataarskin.com", // placeholder cross-link
   // Unconfirmed figures. Keep hidden until the business confirms they are real
   // (LLD §12: social_proof_enabled defaults to off).
+  supportHours: "Monday to Saturday, 10:00 to 18:00",
   socialProofEnabled: false,
   rating: 4.6,
   customers: "30,000+",

@@ -166,6 +166,26 @@ export function ConfirmClient() {
       </div>
 
       {!pending && !cancelled && (
+        <div className="bg-surface border border-line rounded-lg p-5 mt-5">
+          <h4 className="text-base font-semibold mb-3">Your order arrives in two parcels</h4>
+          <ol className="m-0 p-0 list-none flex flex-col gap-3 text-[0.9rem] text-ink-2">
+            <li className="flex gap-3 items-start">
+              <span className="w-6 h-6 shrink-0 rounded-full bg-nav text-white text-[0.8rem] font-semibold grid place-items-center">1</span>
+              <span>
+                <b className="text-ink">Your sizing kit ships first.</b> It arrives in 4–7 working days. Try the sizers at home.
+              </span>
+            </li>
+            <li className="flex gap-3 items-start">
+              <span className="w-6 h-6 shrink-0 rounded-full bg-nav text-white text-[0.8rem] font-semibold grid place-items-center">2</span>
+              <span>
+                <b className="text-ink">Then your ring.</b> Submit your size from your account and we ship your ring as soon as we have it.
+              </span>
+            </li>
+          </ol>
+        </div>
+      )}
+
+      {!pending && !cancelled && (
         <div className="flex gap-3.5 items-start bg-gold-tint border border-gold-wash rounded-lg p-5 mt-5">
           <span className="w-10.5 h-10.5 rounded-xl bg-surface shadow-sm text-gold-deep grid place-items-center shrink-0">
             <Icon name="face" size={19} />

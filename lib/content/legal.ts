@@ -120,8 +120,12 @@ export const LEGAL_DOCS: Record<string, { title: string; blocks: Block[] }> = {
       {
         p: "A sizing kit is included with your ring and ships first. Use the sizers at home, then submit your size from your account. Once submitted, your size is locked and cannot be changed, so please confirm it carefully. There is no size exchange.",
       },
+      { h2: "The 15-day target" },
+      {
+        p: "After your sizing kit is delivered, please submit your size within 15 days. This is a target, not a deadline: your order is not cancelled if you take longer. We will keep reminding you, our team may call to help, and we ship your ring as soon as you send your size. If you decide to cancel after the 15 days, the same refund applies as for any cancellation after the kit.",
+      },
       { h2: "How to reach us" },
-      { p: `${SITE.email ? `Email ${SITE.email}` : "Use the contact form on our Support page"}${SITE.waNumber ? " or WhatsApp us" : ""} and our team will take it from there.` },
+      { p: `${SITE.email ? `Email ${SITE.email}` : "Use the contact form on our Support page"}${SITE.waNumber ? " or WhatsApp us" : ""} and our team will take it from there. Support hours: ${SITE.supportHours}.` },
     ],
   },
 };

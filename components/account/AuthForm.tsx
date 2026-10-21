@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Icon } from "@/components/ui/Icon";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
 
@@ -197,13 +196,6 @@ export function AuthForm({ onSuccess }: { onSuccess?: () => void } = {}) {
               {submitting ? "Sending…" : "Send code"}
             </button>
           </form>
-        )}
-
-        {step === "enter" && (
-          <p className="flex gap-2.5 items-start text-[0.78rem] text-muted mt-4.5">
-            <Icon name="lock" size={15} className="shrink-0 mt-0.5" />
-            <span>Your i do website account is separate from the i do app.</span>
-          </p>
         )}
 
         <div className="text-center mt-5 pt-4.5 border-t border-line text-[0.88rem]">

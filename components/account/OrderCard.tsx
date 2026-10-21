@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { formatINR } from "@/lib/format";
-import { orderStatusLabel } from "@/lib/order-status";
+import { CANCEL_REASON_TEXT, orderStatusLabel, refundLine, returningText, ringReturning } from "@/lib/order-status";
 import { FINISHES } from "@/lib/content/product";
 import { GALLERY } from "@/lib/content/shop";
 import type { Order } from "@/lib/orders-storage";
@@ -46,6 +46,19 @@ export function OrderCard({
         <div className="flex justify-between items-baseline pt-3 border-t border-line">
           <span className="text-[0.85rem] text-muted">Total</span>
           <span className="font-serif text-xl font-medium">{formatINR(order.total)}</span>
+        </div>
+      )}
+      {ringReturning(order) && (
+        <div className="bg-bg-2 border border-line rounded-lg p-3.5 mb-3.5">
+          <div className="font-semibold">Your ring is on its way back to us</div>
+          <p className="text-[0.85rem] text-ink-2 mt-1 mb-0">{returningText(order)}</p>
+        </div>
+      )}
+      {order.status === "cancelled" && (
+        <div className="bg-bg-2 border border-line rounded-lg p-3.5 mb-3.5">
+          <div className="font-semibold">Cancelled</div>
+          {order.cancelReason && <p className="text-[0.85rem] text-ink-2 mt-1 mb-0">{CANCEL_REASON_TEXT[order.cancelReason]}</p>}
+          {refundLine(order.refund) && <p className="text-[0.85rem] text-ink-2 mt-1 mb-0">{refundLine(order.refund)}</p>}
         </div>
       )}
       {order.status === "size_submitted" && order.usSize && (

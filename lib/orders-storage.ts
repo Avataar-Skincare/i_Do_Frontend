@@ -15,13 +15,29 @@ export type OrderStatus =
 
 export type Shipment = {
   id: string;
-  kind: string;
-  status: string;
+  kind: "kit" | "ring" | "replacement";
+  /** pending → shipped → delivered, or rto (returning to us; see rtoReason) or lost. */
+  status: "pending" | "shipped" | "delivered" | "rto" | "lost";
+  attempt?: number;
   courier: string | null;
   awb: string | null;
   trackingUrl: string | null;
   shippedAt?: string | null;
   deliveredAt?: string | null;
+};
+
+export type Refund = {
+  id: string;
+  /** amount = amountPaid − kitDeduction − feeDeduction, fixed when the refund is created. */
+  amountPaid: number;
+  kitDeduction: number;
+  feeDeduction: number;
+  amount: number;
+  method: "razorpay" | "bank" | "upi" | null;
+  /** True while a bank or UPI refund still waits for the customer's details. */
+  destinationRequired: boolean;
+  status: "requested" | "processing" | "paid" | "rejected";
+  paidAt?: string | null;
 };
 
 /** The customer's view of an order (owner only). Every money field is integer paise. */
@@ -49,6 +65,7 @@ export type Order = {
   createdAt: string;
   updatedAt: string;
   shipments: Shipment[];
+  refund: Refund | null;
 };
 
 /** Passed to the Razorpay Checkout widget; created server-side with payment_capture=1. */
