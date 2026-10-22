@@ -24,7 +24,8 @@ function inputClass(hasError: boolean) {
 export function AuthForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const { sendEmailOtp, verifyEmailOtp, sendPhoneOtp, verifyPhoneOtp } = useAuth();
 
-  const [method, setMethod] = useState<Method>("email");
+  // Phone is the default: the phone number is the account key shared with the ring app (LLD login boards).
+  const [method, setMethod] = useState<Method>("phone");
   const [step, setStep] = useState<Step>("enter");
 
   const [identifier, setIdentifier] = useState(""); // email or 10-digit phone, depending on method
