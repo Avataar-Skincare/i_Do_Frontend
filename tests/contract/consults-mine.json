@@ -1,0 +1,20 @@
+[
+  {
+    "id": "c_8fK2mQ7xZ1",
+    "entitlementId": "4b5c6d7e-8f9a-4b0c-9d1e-2f3a4b5c6d71",
+    "type": "derm",
+    "name": "Rohan Mehta",
+    "phone": "9800000002",
+    "email": "rohan.mehta@example.com",
+    "appointmentDate": "2026-11-12",
+    "timeSlot": "10:00 AM",
+    "appointmentAt": "2026-11-12T10:00:00+05:30",
+    "concern": "Sleep score dropped after travel",
+    "status": "CONFIRMED",
+    "doctorName": "Dr. A. Kapoor",
+    "meetingLink": "https://meet.example.com/ido-c8fk2",
+    "confirmedAt": "2026-11-06T11:00:00+05:30",
+    "completedAt": null,
+    "createdAt": "2026-11-05T18:00:00+05:30"
+  }
+]

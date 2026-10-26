@@ -9,8 +9,11 @@ import {
   orderStageIndex,
   refundLine,
   returningText,
+  stageDate,
+  courierName,
 } from "@/lib/order-status";
-import type { Refund, Shipment } from "@/lib/orders-storage";
+import type { Order, Refund, Shipment } from "@/lib/orders-storage";
+import contractOrders from "@/tests/contract/orders-mine.json";
 
 const ship = (over: Partial<Shipment>): Shipment => ({
   id: "s", kind: "ring", status: "shipped", courier: null, awb: null, trackingUrl: null, ...over,
@@ -78,5 +81,30 @@ describe("returningText", () => {
   it("mentions the ₹100 COD fee only for COD orders", () => {
     expect(returningText({ paymentMethod: "cod" })).toContain("₹100 COD handling fee");
     expect(returningText({ paymentMethod: "online" })).not.toContain("COD");
+  });
+});
+
+describe("stageDate: real timestamps from the API", () => {
+  const delivered = contractOrders[1] as unknown as Order; // contract example: ring_delivered
+  it("reads each stage from its own field", () => {
+    expect(stageDate(delivered, "confirmed")).toBe(delivered.createdAt);
+    expect(stageDate(delivered, "kit_shipped")).toBe("2026-10-21T16:30:00+05:30");
+    expect(stageDate(delivered, "kit_delivered")).toBe("2026-10-24T14:05:00+05:30");
+    expect(stageDate(delivered, "size_submitted")).toBe("2026-10-25T09:40:00+05:30");
+    expect(stageDate(delivered, "ring_shipped")).toBe("2026-10-27T18:00:00+05:30");
+    expect(stageDate(delivered, "ring_delivered")).toBe("2026-10-31T13:10:00+05:30");
+  });
+  it("is null when the stage has no date yet or is not a timeline stage", () => {
+    const early = contractOrders[0] as unknown as Order; // kit_delivered
+    expect(stageDate(early, "size_submitted")).toBeNull();
+    expect(stageDate(early, "ring_shipped")).toBeNull();
+    expect(stageDate(early, "cancelled")).toBeNull();
+  });
+});
+
+describe("courierName", () => {
+  it("capitalises the id and tolerates none", () => {
+    expect(courierName("delhivery")).toBe("Delhivery");
+    expect(courierName(null)).toBeNull();
   });
 });

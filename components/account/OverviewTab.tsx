@@ -14,7 +14,8 @@ export function OverviewTab({
 }: {
   user: AuthUser;
   orders: Order[];
-  consults: StoredConsult[];
+  /** Null when the consults list couldn't be loaded: shown as a dash instead of a false zero. */
+  consults: StoredConsult[] | null;
   onOrderChange?: (order: Order) => void;
 }) {
   const firstName = (user.fullName || user.email?.split("@")[0] || user.phone || "there").split(" ")[0];
@@ -29,7 +30,7 @@ export function OverviewTab({
 
       <div className="grid grid-cols-3 gap-3.5 mb-6">
         <Stat value={orders.length} label="Orders" />
-        <Stat value={consults.length} label="Consults booked" />
+        <Stat value={consults ? consults.filter((c) => c.status !== "CANCELLED").length : "—"} label="Consults booked" />
         <Stat value={latest ? orderStatusLabel(latest) : "—"} label="Ring status" />
       </div>
 

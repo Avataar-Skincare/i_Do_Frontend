@@ -69,3 +69,30 @@ export function orderStageIndex(order: Pick<Order, "status">): number {
   const i = ORDER_STAGES.findIndex((s) => s.status === order.status);
   return i === -1 ? 0 : i;
 }
+
+/** When the customer's order reached a stage, from the API's own timestamps; null if unknown or not yet. */
+export function stageDate(order: Order, status: OrderStatus): string | null {
+  const kit = latestShipment(order, "kit");
+  const ring = latestShipment(order, "ring");
+  switch (status) {
+    case "confirmed":
+      return order.createdAt ?? null;
+    case "kit_shipped":
+      return kit?.shippedAt ?? null;
+    case "kit_delivered":
+      return order.kitDeliveredAt ?? kit?.deliveredAt ?? null;
+    case "size_submitted":
+      return order.sizeSubmittedAt ?? null;
+    case "ring_shipped":
+      return ring?.shippedAt ?? null;
+    case "ring_delivered":
+      return order.ringDeliveredAt ?? ring?.deliveredAt ?? null;
+    default:
+      return null;
+  }
+}
+
+/** Couriers arrive as lower-case ids ("delhivery"); show them as names. */
+export function courierName(courier: string | null | undefined): string | null {
+  return courier ? courier.charAt(0).toUpperCase() + courier.slice(1) : null;
+}
