@@ -59,14 +59,34 @@ export type Order = {
   kitPriceSnapshot: number;
   customer: { name: string; email: string; phone: string };
   address: { line: string; city: string; state: string; pin: string };
+  offerCode?: string | null;
   buyerGstin?: string | null;
   buyerLegalName?: string | null;
+  kitDeliveredAt?: string | null;
+  /** 23:59:59 IST of kit delivery + 15 days. A reminder target, not a cut-off. */
   sizeDueAt?: string | null;
+  sizeSubmittedAt?: string | null;
+  ringDeliveredAt?: string | null;
+  /** Damaged / wrong-item claims are accepted until this time (7 days after the first ring delivery). */
+  damageWindowUntil?: string | null;
+  warrantyUntil?: string | null;
+  cancelledAt?: string | null;
   createdAt: string;
   updatedAt: string;
   shipments: Shipment[];
   refund: Refund | null;
+  claim?: Claim | null;
+  invoice?: InvoiceSummary | null;
+  creditNotes?: CreditNoteSummary[];
+  /** The 30-day consult window, set at the first ring delivery. Null before that. */
+  consultWindow?: ConsultWindow | null;
 };
+
+export type InvoiceSummary = { id: string; number: string; type: "b2c" | "b2b"; issuedAt: string; total: number; ready: boolean };
+export type CreditNoteSummary = { id: string; number: string; issuedAt: string; total: number; ready: boolean };
+export type Claim = { id: string; kind: string; status: string; description: string; decisionNote?: string | null };
+export type EntitlementState = "available" | "booked" | "used" | "expired";
+export type ConsultWindow = { startsAt: string; expiresAt: string; derm: EntitlementState; dietician: EntitlementState };
 
 /** Passed to the Razorpay Checkout widget; created server-side with payment_capture=1. */
 export type RazorpayCheckout = { id: string; amount: number; currency: string; keyId: string };
@@ -109,12 +129,56 @@ export function submitSize(orderId: string, usSize: number): Promise<Order> {
   return apiPost<Order>(`/orders/${orderId}/size`, { usSize, confirmed: true });
 }
 
+const ORDER_STATUSES: ReadonlySet<string> = new Set<OrderStatus>([
+  "pending_payment",
+  "cod_pending",
+  "confirmed",
+  "kit_shipped",
+  "kit_delivered",
+  "size_submitted",
+  "ring_shipped",
+  "ring_delivered",
+  "cancelled",
+]);
+
+/** The API answered, but not with an order the way the contract describes one. */
+export class UnexpectedResponseError extends Error {
+  constructor(what: string) {
+    super(`The server's answer for ${what} wasn't in the expected format.`);
+  }
+}
+
+/**
+ * Fails loudly, with a readable error, if the server returns something that isn't a contract-shaped
+ * order (for example an older backend returning raw rows without `shipments`), instead of letting a
+ * screen crash on `undefined.filter`. Extra fields are fine; only what the screens rely on is checked.
+ */
+export function assertOrder(value: unknown, what = "this order"): Order {
+  const o = value as Partial<Order> | null;
+  if (
+    !o ||
+    typeof o !== "object" ||
+    typeof o.id !== "string" ||
+    typeof o.status !== "string" ||
+    !ORDER_STATUSES.has(o.status) ||
+    !Array.isArray(o.shipments) ||
+    typeof o.customer !== "object" ||
+    o.customer === null ||
+    typeof o.createdAt !== "string"
+  ) {
+    throw new UnexpectedResponseError(what);
+  }
+  return o as Order;
+}
+
 /** Owner only. Also returns pending_payment orders, so /confirm can poll while a payment settles. */
-export function getOrder(id: string): Promise<Order> {
-  return apiGet<Order>(`/orders/${id}`);
+export async function getOrder(id: string): Promise<Order> {
+  return assertOrder(await apiGet<unknown>(`/orders/${id}`), `order ${id}`);
 }
 
 /** Requires a logged-in user — call only when `useAuth().user` is set. Never includes pending_payment orders. */
-export function getMyOrders(): Promise<Order[]> {
-  return apiGet<Order[]>("/orders/mine");
+export async function getMyOrders(): Promise<Order[]> {
+  const rows = await apiGet<unknown>("/orders/mine");
+  if (!Array.isArray(rows)) throw new UnexpectedResponseError("your orders");
+  return rows.map((row) => assertOrder(row, "your orders"));
 }

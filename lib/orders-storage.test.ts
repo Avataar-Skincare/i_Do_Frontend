@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { mockApi } from "@/tests/fetch-mock";
-import { createOrder, verifyPayment, submitSize, getOrder, getMyOrders, type CreateOrderInput } from "@/lib/orders-storage";
+import {
+  createOrder, verifyPayment, submitSize, getOrder, getMyOrders, assertOrder, UnexpectedResponseError,
+  type CreateOrderInput,
+} from "@/lib/orders-storage";
+import contractOrders from "@/tests/contract/orders-mine.json";
 import { getCatalog, quoteOrder } from "@/lib/catalog";
 
 const input: CreateOrderInput = {
@@ -35,9 +39,9 @@ describe("API contract v1.0.x calls", () => {
   });
 
   it("reads one order and the owner's list", async () => {
-    const api = mockApi({ "GET /orders/IDO-1": { body: { id: "IDO-1" } }, "GET /orders/mine": { body: [] } });
-    await getOrder("IDO-1");
-    await getMyOrders();
+    const api = mockApi({ "GET /orders/IDO-1": { body: contractOrders[0] }, "GET /orders/mine": { body: contractOrders } });
+    expect((await getOrder("IDO-1")).id).toBe(contractOrders[0].id);
+    expect(await getMyOrders()).toHaveLength(2);
     expect(api.calls.map((c) => c.path)).toEqual(["/orders/IDO-1", "/orders/mine"]);
   });
 
@@ -46,5 +50,31 @@ describe("API contract v1.0.x calls", () => {
     await quoteOrder({ finish: "silver", paymentMethod: "cod", pin: "411001" });
     await getCatalog();
     expect(api.calls[0].body).toEqual({ finish: "silver", paymentMethod: "cod", pin: "411001" });
+  });
+});
+
+describe("response check: only contract-shaped orders reach the screens", () => {
+  it("accepts every order in the contract's examples", () => {
+    for (const o of contractOrders) expect(assertOrder(o).id).toBe(o.id);
+  });
+
+  it("rejects an older backend's raw row (no shipments array) with a readable error", async () => {
+    const rawRow = { id: "IDO-1", status: "placed", customer: { name: "A" }, createdAt: "2026-10-20T10:00:00Z" };
+    mockApi({ "GET /orders/mine": { body: [rawRow] }, "GET /orders/IDO-1": { body: rawRow } });
+    await expect(getMyOrders()).rejects.toBeInstanceOf(UnexpectedResponseError);
+    await expect(getOrder("IDO-1")).rejects.toThrow(/expected format/);
+  });
+
+  it("rejects an order with a valid status but no shipments list (the field the timeline reads)", () => {
+    const { shipments: _omit, ...withoutShipments } = contractOrders[0];
+    void _omit;
+    expect(() => assertOrder(withoutShipments)).toThrow(UnexpectedResponseError);
+    expect(() => assertOrder({ ...contractOrders[0], shipments: null })).toThrow(UnexpectedResponseError);
+  });
+
+  it("rejects an unknown status and a non-array list", async () => {
+    expect(() => assertOrder({ ...contractOrders[0], status: "placed" })).toThrow(UnexpectedResponseError);
+    mockApi({ "GET /orders/mine": { body: { message: "nope" } } });
+    await expect(getMyOrders()).rejects.toBeInstanceOf(UnexpectedResponseError);
   });
 });

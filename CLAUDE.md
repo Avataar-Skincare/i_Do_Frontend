@@ -154,8 +154,19 @@ reservation stay invisible to the customer, per the contract.
   `ring_shipped` while the newest ring shipment is `rto` reads "Your ring is on its way back to us"),
   `CANCEL_REASON_TEXT`, `refundLine` and `returningText`. Refund amounts are always the server's, never
   worked out in the browser.
-- **Tracking** (`TrackTimeline`, `OrderCard`): a cancelled order shows its reason and refund; the kit and ring
-  stages link to the courier (`Track with {courier} · AWB {awb}`, plain text if there is no URL).
+- **Tracking** (`TrackTimeline`, `OrderCard`): a cancelled order shows its date, reason and refund; the kit and
+  ring stages link to the courier (`Track with {Courier} · AWB {awb}`, plain text if there is no URL). Every
+  reached stage shows its real date from the order's own timestamps (`stageDate`, shown in IST), and after the
+  ring is delivered the damage-report and warranty dates from `damageWindowUntil` / `warrantyUntil`.
+- **Account data** (`AccountDashboard`): orders and consults load independently. A failure shows "We couldn't
+  load your orders" with a retry (never a false "No orders yet"); a 401 after the silent refresh shows "Your
+  session has expired" with a login button; failing consults show a dash, not 0, on the overview.
+- **Response check** (`assertOrder` in `lib/orders-storage.ts`): `getMyOrders` / `getOrder` throw
+  `UnexpectedResponseError` if the server answers with something that isn't a contract-shaped order (e.g. raw
+  rows without `shipments`), so a backend that isn't on the contract yet fails readably instead of crashing a screen.
+- **Contract fixtures:** `tests/contract/*.json` are the contract's own example responses (from
+  `i_Do_Backend/api/openapi.yaml`, through the Prism mock). Tests render every screen from them; refresh them
+  when the contract's examples change.
 - **`/confirm`** explains the two parcels (kit first, then the ring after the size is submitted).
 - Legal copy includes the 15-day size target (a target, not a deadline) and `SITE.supportHours`.
 
@@ -199,4 +210,9 @@ Pipeline details (OIDC, ECR, the locked deploy script, rollback) and the server 
   come at launch.
 - WhatsApp OTP (alongside the working SMS OTP) is built but not live on the backend —
   waiting on real Messenger-gateway credentials.
-- No automated tests. CI builds and deploys to test, but has no test step.
+- Tests: `pnpm test` (Vitest + Testing Library, mocked network). CI builds and deploys to test but does not run
+  them yet. Not covered: consult booking, delete account, header/footer, shop and sizing pages, and the real
+  `POST /orders` (the test backend does not have it yet).
+- Real API only works from `test.idowellness.ai`: the login cookies are host-only on `test-api` and SameSite=Lax,
+  so a local `localhost:3000` page cannot use them against the test API. Locally use the Prism mock
+  (`NEXT_PUBLIC_API_URL=http://localhost:4010`) or a local backend.

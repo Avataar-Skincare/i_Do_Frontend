@@ -1,7 +1,14 @@
 import { Icon } from "@/components/ui/Icon";
 import { LinkButton } from "@/components/ui/Button";
 import { CONSULT_TYPES } from "@/lib/content/consults";
-import type { StoredConsult } from "@/lib/consults-storage";
+import { consultWhen, type ConsultStatus, type StoredConsult } from "@/lib/consults-storage";
+
+const STATUS_LABEL: Record<ConsultStatus, string> = {
+  PENDING: "Awaiting confirmation",
+  CONFIRMED: "Confirmed",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+};
 
 export function ConsultsTab({ consults }: { consults: StoredConsult[] }) {
   return (
@@ -22,14 +29,23 @@ export function ConsultsTab({ consults }: { consults: StoredConsult[] }) {
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div>
                     <div className="font-semibold">{meta?.eyebrow ?? "Consult"}</div>
-                    <div className="text-[0.82rem] text-muted mt-0.5">
-                      {consult.dayLabel} · {consult.timeSlot}
-                    </div>
+                    <div className="text-[0.82rem] text-muted mt-0.5">{consultWhen(consult)}</div>
                   </div>
                   <span className="shrink-0 text-[0.72rem] font-semibold py-1 px-2.5 rounded-pill bg-gold-wash text-gold-deep">
-                    Booked
+                    {STATUS_LABEL[consult.status] ?? consult.status}
                   </span>
                 </div>
+                {consult.status === "CONFIRMED" && (consult.doctorName || consult.meetingLink) && (
+                  <p className="text-[0.88rem] text-ink-2 mb-2">
+                    {consult.doctorName}
+                    {consult.doctorName && consult.meetingLink ? " · " : ""}
+                    {consult.meetingLink && (
+                      <a href={consult.meetingLink} target="_blank" rel="noopener noreferrer" className="font-semibold text-gold-deep underline">
+                        Join the call
+                      </a>
+                    )}
+                  </p>
+                )}
                 {consult.concern && <p className="text-muted text-[0.9rem] m-0">&ldquo;{consult.concern}&rdquo;</p>}
               </div>
             );

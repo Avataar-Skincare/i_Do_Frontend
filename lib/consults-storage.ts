@@ -1,7 +1,8 @@
 import type { ConsultTypeId } from "@/lib/content/consults";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { formatIstDateTime } from "@/lib/format";
 
-export type ConsultStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
+export type ConsultStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
 
 export type StoredConsult = {
   id: string;
@@ -10,14 +11,31 @@ export type StoredConsult = {
   phone: string;
   email: string;
   type: ConsultTypeId;
-  dayLabel: string;
+  /** The booking screen's own wording of the day. The API now sends `appointmentDate` instead. */
+  dayLabel?: string;
+  /** API contract: the day the customer asked for (YYYY-MM-DD). */
+  appointmentDate?: string;
   timeSlot: string;
+  /** Set by the partner on confirm, in IST. Prefer this over the requested day once it exists. */
+  appointmentAt?: string | null;
+  entitlementId?: string;
   concern: string;
   status: ConsultStatus;
   doctorName: string | null;
   meetingLink: string | null;
+  confirmedAt?: string | null;
+  completedAt?: string | null;
   createdAt: string;
 };
+
+/** "12 Nov, 10:00 IST" once confirmed; otherwise the day and slot the customer asked for. */
+export function consultWhen(c: Pick<StoredConsult, "appointmentAt" | "appointmentDate" | "dayLabel" | "timeSlot">): string {
+  if (c.appointmentAt) return formatIstDateTime(c.appointmentAt);
+  const day = c.appointmentDate
+    ? new Date(`${c.appointmentDate}T00:00:00+05:30`).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" })
+    : c.dayLabel;
+  return [day, c.timeSlot].filter(Boolean).join(" · ");
+}
 
 /**
  * Booking requires a logged-in account — staff (in partner-app) need a real
@@ -29,7 +47,10 @@ export type StoredConsult = {
  * cancelled and rescheduled independently (see `cancelConsult` / `rescheduleConsult`).
  */
 export function saveConsult(
-  input: Omit<StoredConsult, "id" | "userId" | "status" | "doctorName" | "meetingLink" | "createdAt">,
+  input: Omit<
+    StoredConsult,
+    "id" | "userId" | "status" | "doctorName" | "meetingLink" | "createdAt" | "dayLabel" | "appointmentDate" | "appointmentAt" | "entitlementId" | "confirmedAt" | "completedAt"
+  > & { dayLabel: string },
 ): Promise<StoredConsult> {
   return apiPost<StoredConsult>("/consults", input);
 }

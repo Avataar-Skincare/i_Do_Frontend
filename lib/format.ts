@@ -16,3 +16,8 @@ export function formatIstDateTime(iso: string): string {
 export function daysUntil(iso: string, nowMs: number): number {
   return Math.max(0, Math.ceil((new Date(iso).getTime() - nowMs) / 86_400_000));
 }
+
+/** "27 Oct": a calendar day in Indian time, for the tracking timeline. */
+export function formatIstDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+}
