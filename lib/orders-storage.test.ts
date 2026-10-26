@@ -65,6 +65,13 @@ describe("response check: only contract-shaped orders reach the screens", () => 
     await expect(getOrder("IDO-1")).rejects.toThrow(/expected format/);
   });
 
+  it("rejects an order with a valid status but no shipments list (the field the timeline reads)", () => {
+    const { shipments: _omit, ...withoutShipments } = contractOrders[0];
+    void _omit;
+    expect(() => assertOrder(withoutShipments)).toThrow(UnexpectedResponseError);
+    expect(() => assertOrder({ ...contractOrders[0], shipments: null })).toThrow(UnexpectedResponseError);
+  });
+
   it("rejects an unknown status and a non-array list", async () => {
     expect(() => assertOrder({ ...contractOrders[0], status: "placed" })).toThrow(UnexpectedResponseError);
     mockApi({ "GET /orders/mine": { body: { message: "nope" } } });
