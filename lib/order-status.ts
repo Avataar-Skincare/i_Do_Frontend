@@ -96,3 +96,24 @@ export function stageDate(order: Order, status: OrderStatus): string | null {
 export function courierName(courier: string | null | undefined): string | null {
   return courier ? courier.charAt(0).toUpperCase() + courier.slice(1) : null;
 }
+
+/** The seven steps on an order card (LLD wireframe "account submit size"): one more than the tracking timeline, which starts at "confirmed". */
+export const CARD_STAGES: ReadonlyArray<{ status: OrderStatus[]; label: string }> = [
+  { status: ["pending_payment", "cod_pending"], label: "Placed" },
+  { status: ["confirmed"], label: "Confirmed" },
+  { status: ["kit_shipped"], label: "Kit shipped" },
+  { status: ["kit_delivered"], label: "Kit delivered" },
+  { status: ["size_submitted"], label: "Size submitted" },
+  { status: ["ring_shipped"], label: "Ring shipped" },
+  { status: ["ring_delivered"], label: "Ring delivered" },
+];
+
+/** Which of the seven steps the order is on; -1 for a cancelled order, which has no journey to show. */
+export function cardStageIndex(order: Pick<Order, "status">): number {
+  return CARD_STAGES.findIndex((s) => s.status.includes(order.status));
+}
+
+/** The shipment worth a footer line, newest kind first: a replacement ring (after a claim), else the ring, else the kit. */
+export function footerShipment(order: Pick<Order, "shipments">): Shipment | undefined {
+  return latestShipment(order, "replacement") ?? latestShipment(order, "ring") ?? latestShipment(order, "kit");
+}

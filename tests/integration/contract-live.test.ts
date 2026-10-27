@@ -96,7 +96,10 @@ describe.skipIf(!BASE)("API contract, live over HTTP", () => {
       razorpayOrderId: "order_x", razorpayPaymentId: "pay_x", razorpaySignature: "sig_x",
     });
     api.orders.assertOrder(verified);
-    api.orders.assertOrder(await api.orders.submitSize("IDO-7K3Q9M2X4P", 9));
+    const locked = api.orders.assertOrder(await api.orders.submitSize("IDO-7K3Q9M2X4P", 9));
+    // What the card and strip rely on after a size submit: the order is locked on a size.
+    expect(locked.status).toBe("size_submitted");
+    expect(locked.usSize).not.toBeNull();
   });
 
   it("GET /consults/mine: the fields the Consults tab shows are there", async () => {

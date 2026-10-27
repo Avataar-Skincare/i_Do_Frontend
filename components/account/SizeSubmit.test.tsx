@@ -73,6 +73,49 @@ describe("SizeSubmit: size confirmation step", () => {
   });
 });
 
+describe("SizeSubmit: stock note on the confirm step (before the size is submitted)", () => {
+  const stock = {
+    finishes: [{ id: "gold", name: "Gold", sizes: [{ us: 8, inStock: true }, { us: 11, inStock: false }] }],
+  };
+
+  async function toConfirm(us: number) {
+    const { user } = setup({});
+    await user.click(screen.getByRole("radio", { name: new RegExp(`US ${us}`) }));
+    await user.click(screen.getByRole("button", { name: `Submit size US ${us}` }));
+  }
+
+  it("says the size is in stock when the catalog says so", async () => {
+    catalog.value = stock;
+    await toConfirm(8);
+    expect(screen.getByText("US 8 is in stock.")).toBeInTheDocument();
+    catalog.value = null;
+  });
+
+  it("says a size that isn't on the shelf will ship a little later, and that the size is still locked in", async () => {
+    catalog.value = stock;
+    await toConfirm(11);
+    expect(screen.getByText(/US 11 isn't on the shelf right now, so your ring will take a little longer to ship/)).toBeInTheDocument();
+    expect(screen.getByText(/Your size is still locked in/)).toBeInTheDocument();
+    catalog.value = null;
+  });
+
+  it("says nothing about stock when the catalog could not be loaded (no guessing)", async () => {
+    catalog.value = null;
+    await toConfirm(8);
+    expect(screen.queryByText(/in stock|on the shelf/)).not.toBeInTheDocument();
+  });
+
+  it("shows the 'check your kit first' footnote until the confirm step, and the target date card comes first on a phone", async () => {
+    const due = new Date(Date.now() + 3 * 86_400_000).toISOString();
+    setup({}, { sizeDueAt: due });
+    expect(screen.getByText("This can't be changed later, so check your kit first.")).toBeInTheDocument();
+    expect(screen.getByText("Target date").closest("aside")).toHaveClass("order-first");
+    await userEvent.click(screen.getByRole("radio", { name: "US 9" }));
+    await userEvent.click(screen.getByRole("button", { name: "Submit size US 9" }));
+    expect(screen.queryByText("This can't be changed later, so check your kit first.")).not.toBeInTheDocument();
+  });
+});
+
 describe("SizeSubmit: target date and stock", () => {
   it("shows the target date as a reminder, not a deadline", () => {
     const due = new Date(Date.now() + 3 * 86_400_000 + 3_600_000).toISOString();

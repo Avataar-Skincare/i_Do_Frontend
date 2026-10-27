@@ -203,6 +203,89 @@ describe("checkout: cash on delivery", () => {
   });
 });
 
+describe("checkout: Idempotency-Key handling the contract asks for (22 Oct)", () => {
+  const created = (id: string) => ({
+    status: 201,
+    body: { order: order({ id, status: "pending_payment" }), razorpay: RAZORPAY },
+  });
+  const keysOf = (api: { calls: Call[] }) => ordersPosts(api).map((c) => c.headers["Idempotency-Key"]);
+
+  it("409 IDEMPOTENCY_KEY_REUSED shows the message and the next attempt uses a NEW key", async () => {
+    rzp.pay.mockResolvedValue(PROOF);
+    const { user, api } = renderCheckout({
+      ...loggedIn,
+      "POST /orders": [
+        { status: 409, body: { message: "These details don't match your earlier attempt", code: "IDEMPOTENCY_KEY_REUSED" } },
+        created("IDO-1"),
+      ],
+      "POST /orders/IDO-1/payment/verify": { body: order({ id: "IDO-1", status: "confirmed" }) },
+    });
+    await screen.findByDisplayValue("Asha Rao");
+    await fill(user);
+    await user.click(placeBtn());
+    expect(await screen.findByRole("alert")).toHaveTextContent("These details don't match your earlier attempt");
+    expect(nav.push).not.toHaveBeenCalled();
+    await user.click(placeBtn());
+    await waitFor(() => expect(nav.push).toHaveBeenCalledWith("/confirm?orderId=IDO-1"));
+    const [first, second] = keysOf(api);
+    expect(second).not.toBe(first);
+  });
+
+  it("503 PAYMENT_GATEWAY_UNAVAILABLE shows the message and a retry keeps the SAME key", async () => {
+    rzp.pay.mockResolvedValue(PROOF);
+    const { user, api } = renderCheckout({
+      ...loggedIn,
+      "POST /orders": [
+        { status: 503, body: { message: "Payments are unavailable, try again shortly", code: "PAYMENT_GATEWAY_UNAVAILABLE" } },
+        created("IDO-1"),
+      ],
+      "POST /orders/IDO-1/payment/verify": { body: order({ id: "IDO-1", status: "confirmed" }) },
+    });
+    await screen.findByDisplayValue("Asha Rao");
+    await fill(user);
+    await user.click(placeBtn());
+    expect(await screen.findByRole("alert")).toHaveTextContent("Payments are unavailable, try again shortly");
+    await user.click(placeBtn());
+    await waitFor(() => expect(nav.push).toHaveBeenCalled());
+    const [first, second] = keysOf(api);
+    expect(second).toBe(first);
+  });
+
+  it("after 'Payment not completed', 'Change details' clears the error and the next order gets a NEW key", async () => {
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    rzp.pay.mockRejectedValueOnce(new PaymentNotCompletedError()).mockResolvedValue(PROOF);
+    const { user, api } = renderCheckout({
+      ...loggedIn,
+      "POST /orders": created("IDO-1"),
+      "POST /orders/IDO-1/payment/verify": { body: order({ id: "IDO-1", status: "confirmed" }) },
+    });
+    await screen.findByDisplayValue("Asha Rao");
+    await fill(user);
+    await user.click(placeBtn());
+    await screen.findByRole("button", { name: "Try payment again" });
+    expect(screen.getByRole("button", { name: "Change details" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Change details" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Place order" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Change details" })).not.toBeInTheDocument();
+    expect(window.scrollTo).toHaveBeenCalled();
+
+    await user.click(placeBtn());
+    await waitFor(() => expect(nav.push).toHaveBeenCalled());
+    const [first, second] = keysOf(api);
+    expect(second).not.toBe(first);
+  });
+
+  it("'Change details' is not offered unless a payment was just left incomplete", async () => {
+    const { user } = renderCheckout({ ...loggedIn });
+    await screen.findByDisplayValue("Asha Rao");
+    expect(screen.queryByRole("button", { name: "Change details" })).not.toBeInTheDocument();
+    await user.click(placeBtn()); // fails validation, no payment attempted
+    expect(screen.queryByRole("button", { name: "Change details" })).not.toBeInTheDocument();
+  });
+});
+
 describe("checkout: server errors", () => {
   it("STORE_NOT_LIVE shows the server's message and keeps the form", async () => {
     const { user } = renderCheckout({

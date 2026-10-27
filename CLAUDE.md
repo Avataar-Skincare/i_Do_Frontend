@@ -141,8 +141,21 @@ Confirm?", and only then `POST /orders/{id}/size {usSize, confirmed: true}` is s
 (`submitSize` in `lib/orders-storage.ts`). The order then reads "Size US N is locked. Your ring ships
 next." The target date (`sizeDueAt`, shown in IST with days left) is a reminder, never a cut-off: a size
 is still accepted after it. A 409 `SIZE_LOCKED` or `INVALID_TRANSITION` shows the server message and
-reloads the order. Sizes the catalog marks out of stock only get a "ships later" tag; backorder and
-reservation stay invisible to the customer, per the contract.
+reloads the order.
+
+**Stock is shown only before the size is submitted.** Sizes the catalog marks out of stock get a "ships
+later" tag on the grid, and the confirm step says "US N is in stock." or "US N isn't on the shelf right now,
+so your ring will take a little longer to ship. Your size is still locked in." (nothing if the catalog could
+not be loaded). After the submit nothing about stock is shown: the contract keeps the reservation and the
+backorder list invisible to the customer, and the catalog's `inStock` would be wrong anyway, because the
+customer's own reservation lowers it. The wording of these two sentences is ours: confirm it with the business.
+
+**The order card follows the LLD wireframe "account submit size":** a 7-step strip (Placed, Confirmed, Kit
+shipped, Kit delivered, Size submitted, Ring shipped, Ring delivered; hidden on a phone and for cancelled
+orders), a footer line with the newest parcel ("Kit · delivered 30 Oct · Track with Shiprocket · AWB …"), the
+target-date card above the sizes on a phone, and after the lock "Think it's wrong? Contact support before it
+ships" (ops can correct a size before the ring ships; customers cannot). "Download invoice" and "Cancel order"
+from the wireframe's footer are not built yet (Thu 5 Nov and Wed 28 Oct in the plan).
 
 ## Catalog, tracking and order states (LLD §8)
 
@@ -167,6 +180,10 @@ reservation stay invisible to the customer, per the contract.
 - **Contract fixtures:** `tests/contract/*.json` are the contract's own example responses (from
   `i_Do_Backend/api/openapi.yaml`, through the Prism mock). Tests render every screen from them; refresh them
   when the contract's examples change.
+- **Checkout and the Idempotency-Key (contract change of 22 Oct):** the key is derived from the exact order
+  details, so any edit makes a new one. After "Payment not completed" the page offers "Try payment again" (same
+  key, same order) and "Change details" (new key, new order). `409 IDEMPOTENCY_KEY_REUSED` drops the key so the
+  next attempt is a new order; `PAYMENT_GATEWAY_UNAVAILABLE` keeps it (a retry creates no duplicate).
 - **`/confirm`** explains the two parcels (kit first, then the ring after the size is submitted).
 - Legal copy includes the 15-day size target (a target, not a deadline) and `SITE.supportHours`.
 

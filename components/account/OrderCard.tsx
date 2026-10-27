@@ -1,10 +1,53 @@
 import Image from "next/image";
-import { formatINR } from "@/lib/format";
-import { CANCEL_REASON_TEXT, orderStatusLabel, refundLine, returningText, ringReturning } from "@/lib/order-status";
+import Link from "next/link";
+import { formatINR, formatIstDate } from "@/lib/format";
+import {
+  CANCEL_REASON_TEXT,
+  CARD_STAGES,
+  cardStageIndex,
+  courierName,
+  footerShipment,
+  orderStatusLabel,
+  refundLine,
+  returningText,
+  ringReturning,
+} from "@/lib/order-status";
 import { FINISHES } from "@/lib/content/product";
 import { GALLERY } from "@/lib/content/shop";
-import type { Order } from "@/lib/orders-storage";
+import type { Order, Shipment } from "@/lib/orders-storage";
 import { SizeSubmit } from "./SizeSubmit";
+
+/** "Kit · delivered 24 Oct · Track with Shiprocket · AWB SR1": where the newest parcel is, with its tracking link. */
+function ShipmentFooter({ shipment }: { shipment: Shipment }) {
+  const what = shipment.kind === "ring" ? "Ring" : shipment.kind === "kit" ? "Kit" : "Replacement";
+  const state =
+    shipment.status === "delivered" && shipment.deliveredAt
+      ? `delivered ${formatIstDate(shipment.deliveredAt)}`
+      : shipment.status === "shipped" && shipment.shippedAt
+        ? `shipped ${formatIstDate(shipment.shippedAt)}`
+        : shipment.status === "rto"
+          ? "on its way back"
+          : shipment.status === "lost"
+            ? "lost in transit"
+            : shipment.status;
+  const track = shipment.awb || shipment.trackingUrl ? [courierName(shipment.courier) ? `Track with ${courierName(shipment.courier)}` : "Track", shipment.awb ? `AWB ${shipment.awb}` : null].filter(Boolean).join(" · ") : null;
+  return (
+    <div className="mt-4 pt-3.5 border-t border-line text-[0.82rem] text-ink-2">
+      {what} · {state}
+      {track &&
+        (shipment.trackingUrl ? (
+          <>
+            {" · "}
+            <a href={shipment.trackingUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-gold-deep underline">
+              {track}
+            </a>
+          </>
+        ) : (
+          <> · {track}</>
+        ))}
+    </div>
+  );
+}
 
 export function OrderCard({
   order,
@@ -31,6 +74,27 @@ export function OrderCard({
           {orderStatusLabel(order)}
         </span>
       </div>
+      {order.status !== "cancelled" && (
+        <ol aria-label="Order progress" className="hidden sm:grid grid-cols-7 gap-1.5 m-0 mb-4 p-0 list-none text-center text-[0.72rem]">
+          {CARD_STAGES.map((stage, i) => {
+            const at = cardStageIndex(order);
+            return (
+              <li
+                key={stage.label}
+                aria-current={i === at ? "step" : undefined}
+                className={[
+                  "py-2 px-1 rounded-[13px]",
+                  i < at ? "bg-sage-bg text-ink-2" : "",
+                  i === at ? "bg-gold text-ink font-semibold" : "",
+                  i > at ? "bg-bg-2 border border-line text-muted" : "",
+                ].join(" ")}
+              >
+                {stage.label}
+              </li>
+            );
+          })}
+        </ol>
+      )}
       <div className="flex flex-col gap-2.5 mb-3.5">
         <div className="flex items-center gap-2.5 text-[0.88rem]">
           <div className="relative w-9 h-9 shrink-0 rounded-sm overflow-hidden border border-line bg-surface-2">
@@ -63,10 +127,17 @@ export function OrderCard({
       )}
       {order.status === "size_submitted" && order.usSize && (
         <p className="text-[0.88rem] text-ink-2 mt-3.5 mb-0">
-          Size US {order.usSize} is locked. Your ring ships next.
+          Size US {order.usSize} is locked. Your ring ships next. Think it&apos;s wrong?{" "}
+          <Link href="/support" className="font-semibold text-gold-deep underline">
+            Contact support
+          </Link>{" "}
+          before it ships.
         </p>
       )}
       {order.status === "kit_delivered" && onOrderChange && <SizeSubmit order={order} onSubmitted={onOrderChange} />}
+      {order.status !== "cancelled" && order.status !== "pending_payment" && footerShipment(order) && (
+        <ShipmentFooter shipment={footerShipment(order)!} />
+      )}
     </div>
   );
 }
