@@ -169,12 +169,29 @@ export function CheckoutForm() {
       } else if (err instanceof ApiError) {
         if (err.code === "GSTIN_INVALID") setErrors((e) => ({ ...e, buyerGstin: err.message }));
         if (err.status === 401) setShowAuthModal(true);
-        setSubmitError(err.message);
+        if (err.code === "IDEMPOTENCY_KEY_REUSED") {
+          // The server saw this key with different details. Drop it so the next attempt is a new order.
+          attempt.current = null;
+          setSubmitError(err.message || "Your order details changed since the last attempt. Please check them and place the order again.");
+        } else if (err.code === "PAYMENT_GATEWAY_UNAVAILABLE") {
+          // Same key on retry is right: nothing was created that a retry would duplicate.
+          setSubmitError(err.message || "We couldn't reach the payment service. Please try again in a minute.");
+        } else {
+          setSubmitError(err.message);
+        }
       } else {
         setSubmitError("Couldn't place your order — check your connection and try again.");
       }
       setSubmitting(false);
     }
+  }
+
+  // After "Payment not completed": start a fresh attempt (new Idempotency-Key, so a new order) instead of resuming the unpaid one.
+  function changeDetails() {
+    attempt.current = null;
+    setPaymentIncomplete(false);
+    setSubmitError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -368,6 +385,15 @@ export function CheckoutForm() {
         >
           {submitting ? "Placing order…" : paymentIncomplete ? "Try payment again" : "Place order"}
         </button>
+        {paymentIncomplete && !submitting && (
+          <button
+            type="button"
+            onClick={changeDetails}
+            className="w-full mt-2.5 min-h-11 font-semibold text-ink-2 underline"
+          >
+            Change details
+          </button>
+        )}
         <div className="flex flex-col gap-2.5 mt-5">
           {CHECKOUT_PERKS.map((perk) => (
             <div key={perk.text} className="flex items-center gap-2.5 text-[0.82rem] text-muted">

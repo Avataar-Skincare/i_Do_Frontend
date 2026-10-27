@@ -99,6 +99,13 @@ export function SizeSubmit({ order, onSubmitted }: { order: Order; onSubmitted: 
         ) : (
           <div role="group" aria-label="Confirm your size" className="bg-gold-tint border border-gold-wash rounded-lg p-4">
             <p className="font-semibold mb-1">You&apos;re choosing US {selected}. This can&apos;t be changed later. Confirm?</p>
+            {selected !== null && inStock[selected] !== undefined && (
+              <p className="text-[0.85rem] font-medium text-ink mb-1">
+                {inStock[selected]
+                  ? `US ${selected} is in stock.`
+                  : `US ${selected} isn't on the shelf right now, so your ring will take a little longer to ship. Your size is still locked in.`}
+              </p>
+            )}
             <p className="text-[0.85rem] text-ink-2 mb-3.5">
               Check it against your sizing kit once more: pick the size that fits comfortably.
             </p>
@@ -123,6 +130,8 @@ export function SizeSubmit({ order, onSubmitted }: { order: Order; onSubmitted: 
           </div>
         )}
 
+        {!confirming && <p className="text-[0.82rem] text-muted mt-3 mb-0">This can&apos;t be changed later, so check your kit first.</p>}
+
         {error && (
           <p role="alert" className="text-[0.85rem] text-error mt-3 mb-0">
             {error}
@@ -131,7 +140,7 @@ export function SizeSubmit({ order, onSubmitted }: { order: Order; onSubmitted: 
       </div>
 
       {due && (
-        <aside className="bg-gold-tint border border-gold-wash rounded-lg p-5 self-start">
+        <aside className="order-first md:order-none bg-gold-tint border border-gold-wash rounded-lg p-5 self-start">
           <div className="font-mono text-[0.7rem] tracking-[0.1em] uppercase text-gold-deep mb-2">Target date</div>
           <div className="font-serif text-[1.7rem] font-medium leading-tight">{formatIstDateTime(due)}</div>
           <div className="font-mono text-[1.05rem] mt-1.5">

@@ -11,6 +11,9 @@ import {
   returningText,
   stageDate,
   courierName,
+  CARD_STAGES,
+  cardStageIndex,
+  footerShipment,
 } from "@/lib/order-status";
 import type { Order, Refund, Shipment } from "@/lib/orders-storage";
 import contractOrders from "@/tests/contract/orders-mine.json";
@@ -106,5 +109,28 @@ describe("courierName", () => {
   it("capitalises the id and tolerates none", () => {
     expect(courierName("delhivery")).toBe("Delhivery");
     expect(courierName(null)).toBeNull();
+  });
+});
+
+describe("order card steps (LLD wireframe: 7 steps)", () => {
+  it("are Placed, Confirmed, Kit shipped, Kit delivered, Size submitted, Ring shipped, Ring delivered", () => {
+    expect(CARD_STAGES.map((s) => s.label)).toEqual(
+      ["Placed", "Confirmed", "Kit shipped", "Kit delivered", "Size submitted", "Ring shipped", "Ring delivered"],
+    );
+  });
+  it("put each of the 9 statuses on one step, unpaid and COD-unconfirmed on 'Placed', cancelled on none", () => {
+    expect(cardStageIndex({ status: "pending_payment" })).toBe(0);
+    expect(cardStageIndex({ status: "cod_pending" })).toBe(0);
+    expect(cardStageIndex({ status: "kit_delivered" })).toBe(3);
+    expect(cardStageIndex({ status: "ring_delivered" })).toBe(6);
+    expect(cardStageIndex({ status: "cancelled" })).toBe(-1);
+  });
+});
+
+describe("footerShipment", () => {
+  it("prefers the newest ring shipment, then the kit, and is undefined with none", () => {
+    expect(footerShipment({ shipments: [ship({ id: "k", kind: "kit" }), ship({ id: "r", kind: "ring", attempt: 1 })] })?.id).toBe("r");
+    expect(footerShipment({ shipments: [ship({ id: "k", kind: "kit" })] })?.id).toBe("k");
+    expect(footerShipment({ shipments: [] })).toBeUndefined();
   });
 });
