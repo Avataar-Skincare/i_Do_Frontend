@@ -128,6 +128,11 @@ describe("order card steps (LLD wireframe: 7 steps)", () => {
 });
 
 describe("footerShipment", () => {
+  it("prefers a replacement ring over the original ring once one exists", () => {
+    const shipments = [ship({ id: "k", kind: "kit" }), ship({ id: "r", kind: "ring", status: "delivered" }), ship({ id: "x", kind: "replacement" })];
+    expect(footerShipment({ shipments })?.id).toBe("x");
+  });
+
   it("prefers the newest ring shipment, then the kit, and is undefined with none", () => {
     expect(footerShipment({ shipments: [ship({ id: "k", kind: "kit" }), ship({ id: "r", kind: "ring", attempt: 1 })] })?.id).toBe("r");
     expect(footerShipment({ shipments: [ship({ id: "k", kind: "kit" })] })?.id).toBe("k");

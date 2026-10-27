@@ -113,7 +113,7 @@ export function cardStageIndex(order: Pick<Order, "status">): number {
   return CARD_STAGES.findIndex((s) => s.status.includes(order.status));
 }
 
-/** The shipment worth a footer line: the ring once there is one, else the kit. */
+/** The shipment worth a footer line, newest kind first: a replacement ring (after a claim), else the ring, else the kit. */
 export function footerShipment(order: Pick<Order, "shipments">): Shipment | undefined {
-  return latestShipment(order, "ring") ?? latestShipment(order, "kit");
+  return latestShipment(order, "replacement") ?? latestShipment(order, "ring") ?? latestShipment(order, "kit");
 }

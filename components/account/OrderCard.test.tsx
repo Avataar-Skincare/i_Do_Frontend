@@ -64,6 +64,42 @@ describe("OrderCard: the shipment footer", () => {
   });
 });
 
+describe("OrderCard: the shipment footer in every parcel state", () => {
+  const parcel = (over: Record<string, unknown>) =>
+    order({
+      status: "kit_shipped",
+      shipments: [{ id: "s", kind: "kit", status: "shipped", attempt: 1, courier: "delhivery", awb: "D100", trackingUrl: null, shippedAt: "2026-10-21T16:30:00+05:30", ...over } as never],
+    });
+
+  it("a shipped parcel says when it shipped", () => {
+    render(<OrderCard order={parcel({})} />);
+    expect(screen.getByText(/^Kit · shipped 21 Oct/)).toBeInTheDocument();
+  });
+
+  it("an AWB with no tracking URL is plain text, not a link", () => {
+    render(<OrderCard order={parcel({})} />);
+    expect(screen.getByText(/Track with Delhivery · AWB D100/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /AWB D100/ })).not.toBeInTheDocument();
+  });
+
+  it("a ring coming back says so; a lost parcel says so; a parcel being prepared says its status", () => {
+    const back = render(<OrderCard order={order({ status: "ring_shipped", shipments: [{ id: "r", kind: "ring", status: "rto", attempt: 1, courier: null, awb: null, trackingUrl: null }] })} />);
+    expect(back.container.textContent).toContain("Ring · on its way back");
+    back.unmount();
+    const lost = render(<OrderCard order={parcel({ status: "lost" })} />);
+    expect(lost.container.textContent).toContain("Kit · lost in transit");
+    lost.unmount();
+    const prep = render(<OrderCard order={parcel({ status: "pending", awb: null, courier: null, shippedAt: null })} />);
+    expect(prep.container.textContent).toContain("Kit · pending");
+    expect(prep.container.textContent).not.toContain("Track");
+  });
+
+  it("names a replacement parcel as such", () => {
+    render(<OrderCard order={parcel({ kind: "replacement" })} />);
+    expect(screen.getByText(/^Replacement · shipped/)).toBeInTheDocument();
+  });
+});
+
 describe("OrderCard: after the size is locked", () => {
   it("says the size is locked, and points to support (ops can still correct it before it ships)", () => {
     render(<OrderCard order={order({ status: "size_submitted", usSize: 9 })} />);
