@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { mockApi } from "@/tests/fetch-mock";
 import {
   createOrder, verifyPayment, submitSize, getOrder, getMyOrders, assertOrder, UnexpectedResponseError,
-  type CreateOrderInput,
+  canRequestCancel, getCancelPreview, cancelOrder, setRefundDestination,
+  type CreateOrderInput, type Order, type OrderStatus,
 } from "@/lib/orders-storage";
 import contractOrders from "@/tests/contract/orders-mine.json";
 import { getCatalog, quoteOrder } from "@/lib/catalog";
@@ -76,5 +77,101 @@ describe("response check: only contract-shaped orders reach the screens", () => 
     expect(() => assertOrder({ ...contractOrders[0], status: "placed" })).toThrow(UnexpectedResponseError);
     mockApi({ "GET /orders/mine": { body: { message: "nope" } } });
     await expect(getMyOrders()).rejects.toBeInstanceOf(UnexpectedResponseError);
+  });
+});
+
+
+describe("cancel & refunds: the calls the account screen makes", () => {
+  const cancelled = { ...contractOrders[0], status: "cancelled", cancelReason: "customer" };
+
+  it("canRequestCancel is true in exactly the four statuses the contract allows", () => {
+    const allowed: OrderStatus[] = ["confirmed", "kit_shipped", "kit_delivered", "size_submitted"];
+    const blocked: OrderStatus[] = ["pending_payment", "cod_pending", "ring_shipped", "ring_delivered", "cancelled"];
+    for (const status of allowed) expect(canRequestCancel({ status } as Order)).toBe(true);
+    for (const status of blocked) expect(canRequestCancel({ status } as Order)).toBe(false);
+    expect(allowed.length + blocked.length).toBe(9); // all 9 states of the machine are decided
+  });
+
+  it("the preview is read, never computed: one GET, no body", async () => {
+    const preview = { cancellable: true, refundPaise: 1400000, kitPricePaise: 99900, codFeePaise: 0, refundRoute: "razorpay" };
+    const api = mockApi({ "GET /orders/IDO-1/cancel-preview": { body: preview } });
+    expect(await getCancelPreview("IDO-1")).toEqual(preview);
+    expect(api.calls[0].method).toBe("GET");
+    expect(api.calls[0].body).toBeUndefined();
+  });
+
+  it("a prepaid cancel sends the reason alone — no destination key at all", async () => {
+    const api = mockApi({ "POST /orders/IDO-1/cancel": { body: { outcome: "cancelled", order: cancelled } } });
+    const res = await cancelOrder("IDO-1", "Changed my mind");
+    expect(api.calls[0].body).toEqual({ reason: "Changed my mind" });
+    expect(res.outcome).toBe("cancelled");
+    expect(res.order.id).toBe(cancelled.id);
+  });
+
+  it("a COD cancel sends the UPI destination in the contract's shape", async () => {
+    const api = mockApi({ "POST /orders/IDO-1/cancel": { body: { outcome: "cancelled", order: cancelled } } });
+    await cancelOrder("IDO-1", "Bought one elsewhere", { type: "upi", upiId: "kavya.example@okx" });
+    expect(api.calls[0].body).toEqual({
+      reason: "Bought one elsewhere",
+      destination: { type: "upi", upiId: "kavya.example@okx" },
+    });
+  });
+
+  it("a bank destination carries exactly accountNo, ifsc and holder", async () => {
+    const api = mockApi({ "POST /orders/IDO-1/cancel": { body: { outcome: "cancelled", order: cancelled } } });
+    await cancelOrder("IDO-1", "No longer needed", {
+      type: "bank", accountNo: "000011112222", ifsc: "HDFC0000001", holder: "Rohan Mehta",
+    });
+    expect(api.calls[0].body).toEqual({
+      reason: "No longer needed",
+      destination: { type: "bank", accountNo: "000011112222", ifsc: "HDFC0000001", holder: "Rohan Mehta" },
+    });
+  });
+
+  it("never sends an amount — the server decides what comes back", async () => {
+    const api = mockApi({ "POST /orders/IDO-1/cancel": { body: { outcome: "cancelled", order: cancelled } } });
+    await cancelOrder("IDO-1", "Changed my mind", { type: "upi", upiId: "a.b@okx" });
+    expect(JSON.stringify(api.calls[0].body)).not.toMatch(/paise|amount|refund|total|price/i);
+  });
+
+  it("rto_requested comes back with the order still in its old state", async () => {
+    const stillShipped = { ...contractOrders[0], status: "kit_shipped" };
+    mockApi({ "POST /orders/IDO-1/cancel": { body: { outcome: "rto_requested", order: stillShipped } } });
+    const res = await cancelOrder("IDO-1", "Changed my mind");
+    expect(res.outcome).toBe("rto_requested");
+    expect(res.order.status).toBe("kit_shipped");
+  });
+
+  it("the cancel response goes through the same response check as any order", async () => {
+    mockApi({ "POST /orders/IDO-1/cancel": { body: { outcome: "cancelled", order: { id: "IDO-1", status: "placed" } } } });
+    await expect(cancelOrder("IDO-1", "Changed my mind")).rejects.toBeInstanceOf(UnexpectedResponseError);
+  });
+
+  it("the contract's error codes arrive as ApiError.code for the screen to branch on", async () => {
+    mockApi({
+      "POST /orders/IDO-1/cancel": {
+        status: 409,
+        body: { message: "Your ring has already shipped, so this order can't be cancelled.", code: "NOT_CANCELLABLE" },
+      },
+    });
+    await expect(cancelOrder("IDO-1", "Changed my mind")).rejects.toMatchObject({
+      status: 409,
+      code: "NOT_CANCELLABLE",
+    });
+  });
+
+  it("setRefundDestination is a PUT on the refund-destination path", async () => {
+    const refund = { id: "r1", orderId: "IDO-1", amount: 1300100, destinationRequired: false, status: "requested" };
+    const api = mockApi({ "PUT /orders/IDO-1/refund-destination": { body: refund } });
+    expect(await setRefundDestination("IDO-1", { type: "upi", upiId: "rohan.example@okx" })).toEqual(refund);
+    expect(api.calls[0].method).toBe("PUT");
+    expect(api.calls[0].body).toEqual({ type: "upi", upiId: "rohan.example@okx" });
+  });
+
+  it("every cancel call carries the cookie session and the CSRF header", async () => {
+    const api = mockApi({ "POST /orders/IDO-1/cancel": { body: { outcome: "cancelled", order: cancelled } } });
+    await cancelOrder("IDO-1", "Changed my mind");
+    expect(api.calls[0].credentials).toBe("include");
+    expect(api.calls[0].headers["X-Requested-With"]).toBe("ido");
   });
 });

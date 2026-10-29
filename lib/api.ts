@@ -76,6 +76,10 @@ export function apiPatch<T>(path: string, body: unknown, init?: RequestInit): Pr
   return request<T>(path, { ...init, method: "PATCH", body: JSON.stringify(body) });
 }
 
+export function apiPut<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
+  return request<T>(path, { ...init, method: "PUT", body: JSON.stringify(body) });
+}
+
 export function apiDelete<T>(path: string, init?: RequestInit): Promise<T> {
   return request<T>(path, { ...init, method: "DELETE" });
 }

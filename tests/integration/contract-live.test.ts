@@ -102,6 +102,74 @@ describe.skipIf(!BASE)("API contract, live over HTTP", () => {
     expect(locked.usSize).not.toBeNull();
   });
 
+  it("GET /orders/{id}/cancel-preview: the server's refund breakdown is contract-shaped", async () => {
+    const p = await api.orders.getCancelPreview("IDO-7K3Q9M2X4P");
+    expect(typeof p.cancellable).toBe("boolean");
+    for (const n of [p.refundPaise, p.kitPricePaise, p.codFeePaise]) {
+      expect(Number.isInteger(n)).toBe(true); // integer paise, never a rupee float
+      expect(n).toBeGreaterThanOrEqual(0);
+    }
+    // The screen switches on this; an unknown value would silently render nothing.
+    expect(["razorpay", "bank_or_upi", "none", "rto_first"]).toContain(p.refundRoute);
+  });
+
+  it("POST /orders/{id}/cancel: a prepaid cancel body is accepted and returns an order", async () => {
+    const res = await api.orders.cancelOrder("IDO-7K3Q9M2X4P", "Changed my mind");
+    expect(["cancelled", "rto_requested"]).toContain(res.outcome);
+    api.orders.assertOrder(res.order); // the same response check the account screens rely on
+  });
+
+  it("POST /orders/{id}/cancel: a COD cancel with UPI details passes the contract's validation", async () => {
+    const res = await api.orders.cancelOrder("IDO-7K3Q9M2X4P", "Bought one elsewhere", {
+      type: "upi",
+      upiId: "kavya.example@okx",
+    });
+    api.orders.assertOrder(res.order);
+  });
+
+  it("POST /orders/{id}/cancel: bank details in our shape are accepted", async () => {
+    const res = await api.orders.cancelOrder("IDO-7K3Q9M2X4P", "No longer needed", {
+      type: "bank",
+      accountNo: "000011112222",
+      ifsc: "HDFC0000001",
+      holder: "Rohan Mehta",
+    });
+    api.orders.assertOrder(res.order);
+  });
+
+  it("PUT /orders/{id}/refund-destination: accepted, and only the last 4 come back", async () => {
+    const refund = await api.orders.setRefundDestination("IDO-7K3Q9M2X4P", {
+      type: "upi",
+      upiId: "rohan.example@okx",
+    });
+    expect(typeof refund.destinationRequired).toBe("boolean");
+    expect(["requested", "processing", "paid", "rejected"]).toContain(refund.status);
+    // Full UPI ids and account numbers must never reach the browser.
+    expect(JSON.stringify(refund)).not.toContain("rohan.example@okx");
+  });
+
+  it("a malformed UPI id is refused by the contract, not silently accepted", async () => {
+    const bad = api.orders.cancelOrder("IDO-7K3Q9M2X4P", "Changed my mind", {
+      type: "upi",
+      upiId: "not-a-upi-id",
+    });
+    await expect(bad).rejects.toBeInstanceOf(api.http.ApiError);
+  });
+
+  it("a malformed IFSC is refused by the contract", async () => {
+    const bad = api.orders.cancelOrder("IDO-7K3Q9M2X4P", "Changed my mind", {
+      type: "bank",
+      accountNo: "000011112222",
+      ifsc: "HDFC1",
+      holder: "Rohan Mehta",
+    });
+    await expect(bad).rejects.toBeInstanceOf(api.http.ApiError);
+  });
+
+  it("an empty cancel reason is refused: the contract requires the customer's own words", async () => {
+    await expect(api.orders.cancelOrder("IDO-7K3Q9M2X4P", "")).rejects.toBeInstanceOf(api.http.ApiError);
+  });
+
   it("GET /consults/mine: the fields the Consults tab shows are there", async () => {
     const [c] = await api.consults.getMyConsults();
     expect(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"]).toContain(c.status);
