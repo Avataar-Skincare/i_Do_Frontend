@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "@/lib/api";
+import { apiGet, apiPost, apiPut } from "@/lib/api";
 import type { FinishId, PaymentMethod } from "@/lib/catalog";
 
 /** The 9 order states (LLD §3.1). `pending_payment` orders are never listed in Account → Orders. */
@@ -127,6 +127,90 @@ export function verifyPayment(orderId: string, proof: PaymentProof): Promise<Ord
  */
 export function submitSize(orderId: string, usSize: number): Promise<Order> {
   return apiPost<Order>(`/orders/${orderId}/size`, { usSize, confirmed: true });
+}
+
+/* ── Cancel & refunds ────────────────────────────────────────────────────── */
+
+/**
+ * Where a COD refund is paid. The server encrypts these at rest and purges them 90 days
+ * after the refund is paid; only the last 4 characters ever come back (`Refund.destLast4`).
+ * Setting one needs a fresh step-up OTP.
+ */
+export type RefundDestination =
+  | { type: "upi"; upiId: string }
+  | { type: "bank"; accountNo: string; ifsc: string; holder: string };
+
+/**
+ * How the money comes back, decided by the server:
+ * - `razorpay` — prepaid, straight back to the original payment.
+ * - `bank_or_upi` — COD after the kit was delivered; the customer must give UPI/bank details
+ *   behind a step-up OTP.
+ * - `none` — nothing has been paid yet (e.g. COD before the kit is delivered).
+ * - `rto_first` — the kit is still in transit, so the cancel is only an RTO request and what
+ *   is refunded depends on whether the kit comes back.
+ */
+export type RefundRoute = "razorpay" | "bank_or_upi" | "none" | "rto_first";
+
+/** What a cancel would refund, worked out by the server. Never recompute these in the browser. */
+export type CancelPreview = {
+  cancellable: boolean;
+  refundPaise: number;
+  /** Deducted once the sizing kit has been delivered — the customer keeps the kit. */
+  kitPricePaise: number;
+  /** The ₹100 COD handling fee, which is never refunded. 0 on prepaid orders. */
+  codFeePaise: number;
+  refundRoute: RefundRoute;
+};
+
+/** `rto_requested` means the kit is in transit: the order stays kit_shipped until it is back. */
+export type CancelOutcome = "cancelled" | "rto_requested";
+
+/** Statuses in which the customer may cancel at all (the contract allows these four). */
+const CANCELLABLE: ReadonlySet<OrderStatus> = new Set<OrderStatus>([
+  "confirmed",
+  "kit_shipped",
+  "kit_delivered",
+  "size_submitted",
+]);
+
+/**
+ * Whether to offer a Cancel button. The server decides for real (`cancellable` on the preview,
+ * and 409 NOT_CANCELLABLE on the cancel itself) — this only avoids showing the button on an
+ * order that plainly cannot be cancelled, such as one whose ring has already shipped.
+ */
+export function canRequestCancel(order: Order): boolean {
+  return CANCELLABLE.has(order.status);
+}
+
+/** GET /orders/{id}/cancel-preview — what cancelling now would refund, and by which route. */
+export function getCancelPreview(orderId: string): Promise<CancelPreview> {
+  return apiGet<CancelPreview>(`/orders/${orderId}/cancel-preview`);
+}
+
+/**
+ * POST /orders/{id}/cancel. `destination` is required when the preview's route is `bank_or_upi`
+ * and only works behind a fresh step-up OTP (401 STEP_UP_REQUIRED otherwise). 409 NOT_CANCELLABLE
+ * if the ring has shipped meanwhile or the order is already cancelled; 400 UPI_INVALID /
+ * IFSC_INVALID on bad details. The credit note is issued by the server.
+ */
+export async function cancelOrder(
+  orderId: string,
+  reason: string,
+  destination?: RefundDestination,
+): Promise<{ outcome: CancelOutcome; order: Order }> {
+  const res = await apiPost<{ outcome: CancelOutcome; order: unknown }>(
+    `/orders/${orderId}/cancel`,
+    destination ? { reason, destination } : { reason },
+  );
+  return { outcome: res.outcome, order: assertOrder(res.order, `order ${orderId}`) };
+}
+
+/**
+ * PUT /orders/{id}/refund-destination — add or change UPI/bank details on a refund that is still
+ * `requested` (e.g. the COD refund created once a refused ring is back with us). Needs step-up.
+ */
+export function setRefundDestination(orderId: string, destination: RefundDestination): Promise<Refund> {
+  return apiPut<Refund>(`/orders/${orderId}/refund-destination`, destination);
 }
 
 const ORDER_STATUSES: ReadonlySet<string> = new Set<OrderStatus>([

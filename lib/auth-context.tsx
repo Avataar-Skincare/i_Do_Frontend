@@ -29,6 +29,12 @@ type AuthContextValue = {
   sendPhoneOtp: (phone: string) => Promise<void>;
   /** Verifying logs the account in — creating it first if this phone has no account yet (fullName only used then). */
   verifyPhoneOtp: (phone: string, code: string, fullName?: string) => Promise<void>;
+  /**
+   * Unlocks sensitive actions (sending refund bank/UPI details) for 15 minutes. The code comes
+   * from the ordinary `sendPhoneOtp`; this exchanges it for a refreshed `ido_at` cookie carrying
+   * the step-up claim. Does not change who is logged in.
+   */
+  stepUp: (code: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -72,6 +78,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
   }
 
+  async function stepUp(code: string) {
+    await apiPost("/auth/step-up", { code });
+  }
+
   async function logout() {
     await apiPost("/auth/logout", {}).catch(() => {
       // Best-effort — the user is logging out either way, not staying stuck on a network error.
@@ -95,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         verifyEmailOtp,
         sendPhoneOtp,
         verifyPhoneOtp,
+        stepUp,
       }}
     >
       {children}

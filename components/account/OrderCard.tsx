@@ -14,7 +14,8 @@ import {
 } from "@/lib/order-status";
 import { FINISHES } from "@/lib/content/product";
 import { GALLERY } from "@/lib/content/shop";
-import type { Order, Shipment } from "@/lib/orders-storage";
+import { canRequestCancel, type Order, type Shipment } from "@/lib/orders-storage";
+import { CancelOrder } from "./CancelOrder";
 import { SizeSubmit } from "./SizeSubmit";
 
 /** "Kit · delivered 24 Oct · Track with Shiprocket · AWB SR1": where the newest parcel is, with its tracking link. */
@@ -135,6 +136,7 @@ export function OrderCard({
         </p>
       )}
       {order.status === "kit_delivered" && onOrderChange && <SizeSubmit order={order} onSubmitted={onOrderChange} />}
+      {onOrderChange && canRequestCancel(order) && <CancelOrder order={order} onOrderChange={onOrderChange} />}
       {order.status !== "cancelled" && order.status !== "pending_payment" && footerShipment(order) && (
         <ShipmentFooter shipment={footerShipment(order)!} />
       )}

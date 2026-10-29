@@ -55,7 +55,7 @@ framework.
 | `app/` | Routes: `/` (home), `/ring`, `/app`, `/about`, `/journal`, `/journal/[slug]`, `/sizing`, `/support`, `/legal/[slug]`, `/shop`, `/cart`, `/checkout`, `/confirm`, `/account`, `/consults` |
 | `components/<page>/` | Components grouped by the page that uses them; shared primitives in `components/ui/`, header/footer in `components/layout/` |
 | `lib/content/*.ts` | **All site copy and product data** (prices, specs, FAQs, legal, journal). Edit text here, not in JSX |
-| `lib/api.ts` | The only HTTP client — `apiGet/Post/Patch/Delete`, silent 401 refresh, `ApiError` (with the contract `code`) |
+| `lib/api.ts` | The only HTTP client — `apiGet/Post/Put/Patch/Delete`, silent 401 refresh, `ApiError` (with the contract `code`) |
 | `lib/auth-context.tsx` | Auth state; cookie session, passwordless email or phone OTP |
 | `lib/cart-context.tsx` | Cart in `localStorage["ido_cart"]` — client-only, never sent until checkout |
 | `lib/orders-storage.ts`, `lib/consults-storage.ts` | Thin API wrappers (despite the names, nothing is stored locally) |
@@ -154,8 +154,56 @@ customer's own reservation lowers it. The wording of these two sentences is ours
 shipped, Kit delivered, Size submitted, Ring shipped, Ring delivered; hidden on a phone and for cancelled
 orders), a footer line with the newest parcel ("Kit · delivered 30 Oct · Track with Shiprocket · AWB …"), the
 target-date card above the sizes on a phone, and after the lock "Think it's wrong? Contact support before it
-ships" (ops can correct a size before the ring ships; customers cannot). "Download invoice" and "Cancel order"
-from the wireframe's footer are not built yet (Thu 5 Nov and Wed 28 Oct in the plan).
+ships" (ops can correct a size before the ring ships; customers cannot). "Cancel order" sits in the
+footer (see below); "Download invoice" is not built yet (Thu 5 Nov in the plan).
+
+## Cancelling an order (Account → Orders)
+
+`components/account/CancelOrder.tsx`, shown inside `OrderCard` while an order is `confirmed`,
+`kit_shipped`, `kit_delivered` or `size_submitted` (`canRequestCancel` in `lib/orders-storage.ts` —
+the four statuses the contract allows). Built to the LLD sequence "Customer cancel + refund"
+(`../docs_/sequence_design/seq4.png`) and the refund table in `../docs_/data_States/Refund_states.png`.
+
+**Every amount is the server's.** `GET /orders/{id}/cancel-preview` returns `refundPaise`,
+`kitPricePaise`, `codFeePaise` and a `refundRoute`; the screen only lays them out. Never work a refund
+out in the browser — the kit price comes off once the kit has been delivered (the customer keeps the
+kit) and the ₹100 COD fee is never refunded, but the server owns both numbers and the order they apply in.
+
+The four routes drive the whole screen:
+
+| `refundRoute` | When | What the screen does |
+|---|---|---|
+| `razorpay` | Prepaid | Reason only; money goes back to the original payment |
+| `bank_or_upi` | COD, kit delivered | Also asks for UPI **or** bank details behind a step-up OTP |
+| `none` | Nothing paid yet (COD before kit delivery) | Says there is nothing to refund |
+| `rto_first` | Kit still in transit | "Cancel and return the kit"; the order stays open until the kit is back |
+
+**The step-up OTP, in this order** (`seq4.png`): the customer fills in UPI/bank → "Send me a code"
+(`sendPhoneOtp` on the order's own phone) → `POST /auth/step-up {code}` → **then**
+`POST /orders/{id}/cancel {reason, destination}`. The claim lasts 15 minutes; a `401 STEP_UP_REQUIRED`
+sends a fresh code and keeps the form rather than losing what was typed. `lib/auth-context.tsx`
+exposes `stepUp(code)`; it does not change who is logged in.
+
+- **UPI/bank is validated twice.** The browser checks the contract's own patterns (`^[\w.-]{2,}@[a-zA-Z]{2,}$`,
+  9–18 digits, `^[A-Z]{4}0[A-Z0-9]{6}$`) so a typo costs no round trip; the server validates again and
+  returns `400 UPI_INVALID` / `IFSC_INVALID`. The IFSC is upper-cased before sending.
+- **DPDP notice** under the form: details are encrypted, used only for this refund and deleted 90 days
+  after it is paid. That is the contract's own behaviour (AES-256-GCM, 90-day purge), not a promise we invented.
+- `409 NOT_CANCELLABLE` (the ring shipped while the form was open) shows the server message and re-reads
+  the order, exactly like `SIZE_LOCKED` on the size step.
+- `outcome` is `cancelled` or `rto_requested`; only the first means the order is actually cancelled.
+- `setRefundDestination` (PUT `/orders/{id}/refund-destination`) exists in `lib/orders-storage.ts` for a
+  refund that is already `requested` — the refused-ring case, where ops create the refund once the ring is
+  back. **No screen uses it yet**; it belongs with the damage/refused-ring UI.
+
+**Tested at three levels.** `lib/orders-storage.test.ts` covers the calls themselves (which body goes out,
+no amount ever sent, `canRequestCancel` across all 9 states, the response check, `ApiError.code`);
+`components/account/CancelOrder.test.tsx` covers the screen (the breakdown, the step-up order, client-side
+validation, every error branch); `tests/integration/contract-live.test.ts` runs the real requests over HTTP
+against the Prism mock, which validates each body against `openapi.yaml` — a malformed UPI id, a bad IFSC, an
+empty reason and a missing `X-Requested-With` are all refused there, so the negative paths are proven against
+the contract rather than a stub.
+
 
 ## Catalog, tracking and order states (LLD §8)
 
@@ -227,9 +275,11 @@ Pipeline details (OIDC, ECR, the locked deploy script, rollback) and the server 
   come at launch.
 - WhatsApp OTP (alongside the working SMS OTP) is built but not live on the backend —
   waiting on real Messenger-gateway credentials.
-- Tests: `pnpm test` (Vitest + Testing Library, mocked network). CI builds and deploys to test but does not run
-  them yet. Not covered: consult booking, delete account, header/footer, shop and sizing pages, and the real
-  `POST /orders` (the test backend does not have it yet).
+- Tests: `pnpm test` (Vitest + Testing Library, mocked network) — **196 passing**, plus **16 contract
+  integration tests** over real HTTP (`pnpm test:contract` against the Prism mock; skipped without
+  `CONTRACT_URL`). CI builds and deploys to test but runs neither yet. Not covered: consult booking,
+  header/footer, shop and sizing pages. `POST /orders` and the cancel endpoints are proven against the
+  contract only — the test backend still has neither.
 - Real API only works from `test.idowellness.ai`: the login cookies are host-only on `test-api` and SameSite=Lax,
   so a local `localhost:3000` page cannot use them against the test API. Locally use the Prism mock
   (`NEXT_PUBLIC_API_URL=http://localhost:4010`) or a local backend.
